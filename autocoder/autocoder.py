@@ -10,7 +10,7 @@ import sys
 when_gpt_4 = 2 # after how many iterations should we use gpt-4
 
 # read the existing code
-with open('content.py', 'r') as f:
+with open('autocoder/content.py', 'r') as f:
     content = f.read()
 
 # user instructions
@@ -92,7 +92,7 @@ def request_correction(content, user_input, previous_code, stdout, stderr, itera
     
     responses = ''
     # Extract the response text from the API response and write it to the file at the end
-    with open('response.py', 'w') as f:
+    with open('autocoder/response.py', 'w') as f:
         for chunk in response:
             if "role" in chunk["choices"][0]["delta"]:
                 continue
@@ -106,14 +106,14 @@ def request_correction(content, user_input, previous_code, stdout, stderr, itera
         response_text = re.sub(r"```python", "", responses)
         response_text = re.sub(r"```", "", response_text)
 
-        # Write the response to the "response.py" file
+        # Write the response to the "autocoder/response.py" file
         f.write(response_text)
 
     
     # run the generated Python code and capture output and error
     # Capture stdout and stderr separately
     # sys.exit()
-    result = subprocess.run(['python', 'response.py'], capture_output=True, text=True)
+    result = subprocess.run(['python', 'autocoder/response.py'], capture_output=True, text=True)
     print("STDOUT:")
     print(result.stdout)
     print("STDERR:")
