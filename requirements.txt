@@ -1,0 +1,5 @@
+openai==0.27.6
+termcolor==2.3.0
+chromadb==0.3.26
+streamlit==0.88.0
+langchain==0.0.200

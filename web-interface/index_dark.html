@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script> <!-- Include Tailwind CSS from CDN -->
+    <script src="marked.min.js"></script>
+
+    <style>
+        /* Set height for HTML and body elements to fill the entire height of the viewport, and remove default margin */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        /* Set the background color to black, text color to white, and link color to green */
+        body {
+            background-color: #1a202c;
+            color: #303030;
+        }
+        a {
+            color: #48bb78;
+        }
+    </style>
+    <title>GPT WEB UI</title>
+</head>
+<body class="flex flex-col h-full"> <!-- Create a flex container with a column layout and fill the height of the viewport -->
+    <main class="flex-grow overflow-y-auto bg-gray-800 p-4" id="main-section">
+        <!-- The main section will fill all the available space, has a gray background and 4 units of padding, and becomes scrollable when the content exceeds its height -->
+        <!-- Add your content here -->
+    </main>
+    <footer class="flex justify-center bg-gray-700 py-4"> <!-- Create a flex container with centered content, gray background, and 4 units of padding on the y-axis -->
+        <div class="w-full max-w-xl mx-auto"> <!-- Set the width of the container to full width and limit the maximum width to extra large (xl), center it horizontally -->
+            <textarea class="w-full resize-y border rounded-lg p-2 bg-gray-900 text-white" style="max-height: 5em;" id="message-input"></textarea> <!-- Create a textarea element that occupies the full width, has a resizable height, a border, rounded corners, and 2 units of padding, with a dark background and white text color -->
+            <button class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded" id="display-message-button">Display Message</button> <!-- Create a button that occupies the full width, has a gray background, turns darker on hover, white text color, bold font, 2 units of padding on the y-axis, 4 units of padding on the x-axis, and rounded corners -->
+        </div>
+    </footer>
+    <script src="script.js"></script> <!-- Include a JavaScript file named "test.js" -->
+</body>
+</html>
