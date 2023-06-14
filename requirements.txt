@@ -5,3 +5,5 @@ streamlit==0.88.0
 langchain==0.0.200
 guidance
 diskcache==5.2.1
+notion_client
+altair==4.2.2
