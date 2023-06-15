@@ -1,0 +1,10 @@
+scipy==1.10.1
+tenacity==8.2.2
+tiktoken==0.3.3
+termcolor==2.3.0
+openai==0.27.8
+requests==2.29.0
+arxiv==1.4.7
+pandas==1.5.3
+PyPDF2==3.0.1
+Ipython==8.13.2
