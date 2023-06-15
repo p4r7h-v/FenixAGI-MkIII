@@ -72,7 +72,7 @@ I want to {{goal}}.
 {{~! Create a project }}
 Here is my project:
 {{parse_best prosandcons options}}
-Please elaborate on this project, and tell me how to best accomplish it. Format the response as a comma-separated list of blocks in Notion API's block object format. Use only the following block types: ("paragraph"","to_do","numbered_list_item","heading_1","heading_2","heading_3").
+Please elaborate on this project, and tell me how to best accomplish it. Format the response as a comma-separated list of blocks in Notion API's block object format. Use only the following block types: ("paragraph"","to_do","heading_1","heading_2","heading_3").
 {{~/user}}
 
 Here is your project:
