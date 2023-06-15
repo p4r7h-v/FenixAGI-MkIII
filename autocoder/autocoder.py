@@ -28,11 +28,11 @@ def request_correction(content, user_input, previous_code, stdout, stderr, itera
     # decide which model to use based on iteration count
     if iteration % when_gpt_4 == 0:
         
-        model = "gpt-4"
+        model = "gpt-4-0613"
         print(colored("Using GPT-4 this turn", 'yellow'))
     else:
         print(colored("Using GPT-3.5-turbo this turn", 'yellow'))
-        model = "gpt-3.5-turbo"
+        model = "gpt-3.5-turbo-0613"
 
 
     if iteration == 1:  # first iteration
