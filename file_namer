@@ -82,7 +82,7 @@ def main():
                     print(f"Error generating description for directory {dirname}: {e}")
     
     # Print and write the descriptions
-    with open('output.txt', 'w') as f:
+    with open('folder_desc.txt', 'w') as f:
         for filepath, description in file_descriptions.items():
             print(f"File: {filepath}\nDescription: {description}\n")
             f.write(f"File: {filepath}\nDescription: {description}\n")
