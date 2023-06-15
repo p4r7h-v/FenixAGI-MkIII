@@ -18,7 +18,7 @@ from io import BytesIO
 import base64
 import json
 
-openai_api_key = "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"
+openai_api_key = os.getenv('OPENAI_API_KEY')
 os.environ["OPENAI_API_KEY"] = openai_api_key
 
 st.set_page_config(layout="wide")
