@@ -1,95 +1,109 @@
 import os
+import re
+import io
+import contextlib
+from langchain.vectorstores import Chroma
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.chains.router import MultiRetrievalQAChain
+from langchain.llms import OpenAI
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 import openai
+import shutil
+import uuid
 
-def read_gitignore():
-    """
-    This function reads the .gitignore file and returns a list of files/directories to ignore.
-    """
-    ignore_list = []
-    if os.path.isfile('.gitignore'):
-        with open('.gitignore', 'r') as file:
-            ignore_list = file.read().splitlines()
-    return ignore_list
+# Setup OpenAI API key
+openai_api_key = os.getenv('OPENAI_API_KEY')
+os.environ["OPENAI_API_KEY"] = openai_api_key
 
-def generate_description(filename, content, is_dir=False, dir_summary=None):
-    """
-    This function takes a filename and its content as inputs and returns a description using the GPT API call
-    """
-    # Your OpenAI API key
-    api_key = os.getenv("OPENAI_API_KEY")
-    openai.api_key = api_key
+BASE_DIR = os.getcwd()
+TEXT_DIR = os.path.join(BASE_DIR, 'text')
+PDF_DIR = os.path.join(BASE_DIR, 'pdf')
+INDEXES_DIR = os.path.join(BASE_DIR, 'indexes')
 
-    # Construct a prompt based on whether the target is a file or directory
-    if is_dir:
-        role_content = f"Based on the following summaries of its files, please describe the purpose of this directory named {filename}: {dir_summary}"
-    else:
-        role_content = f"Please describe the content of this file named {filename} which contains the following text: {content}"
+# Initialize the OpenAI embeddings
+embedding = OpenAIEmbeddings()
 
-    # Make a chat model API call with the given prompt
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0613",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": role_content}
-        ],
-        max_tokens=500
-    )
+# Initialize the text splitter
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20, length_function=len)
 
-    # Get the generated description from the response
-    description = response['choices'][0]['message']['content'].strip()
-    print(f"Role content: {role_content}")  # New debug print statement
-    print(f"Generated description for {filename}: {description}")  # New debug print statement
-    return description
+def process_text_files(directory_path):
+    retrievers_info = []
+    for file_name in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, file_name)
+        if os.path.isfile(file_path) and file_name.endswith('.txt'):
+            with open(file_path, 'r', encoding="utf-8", errors="ignore") as f:
+                doc = text_splitter.create_documents([f.read()])
+            if doc:
+                retriever = Chroma.from_documents(documents=doc, embedding=embedding, persist_directory=os.path.join(INDEXES_DIR, file_name[:-4]))
+                retriever.persist()
+                retriever = retriever.as_retriever()
+                retrievers_info.append({
+                    "name": file_name[:-4],
+                    "description": f"Good for answering questions about {file_name[:-4]}",
+                    "retriever": retriever
+                })
+    return retrievers_info
 
+def process_pdf_files(directory_path):
+    retrievers_info = []
+    for file_name in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, file_name)
+        if os.path.isfile(file_path) and file_name.endswith('.pdf'):
+            loader = PyPDFLoader(file_path)
+            doc = loader.load_and_split()
+            if doc:
+                retriever = Chroma.from_documents(documents=doc, embedding=embedding, persist_directory=os.path.join(INDEXES_DIR, file_name[:-4]))
+                retriever.persist()
+                retriever = retriever.as_retriever()
+                retrievers_info.append({
+                    "name": file_name[:-4],
+                    "description": f"Good for answering questions about {file_name[:-4]}",
+                    "retriever": retriever
+                })
+    return retrievers_info
 
-def main():
-    # Manually set the ignore_list to only contain the env/ folder
-    ignore_list = ['env']
+def process_python_files(directory_path):
+    retrievers_info = []
+    for file_name in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, file_name)
+        if os.path.isfile(file_path) and file_name.endswith('.py'):
+            with open(file_path, 'r', encoding="utf-8", errors="ignore") as f:
+                doc = text_splitter.create_documents([f.read()])
+            if doc:
+                retriever = Chroma.from_documents(documents=doc, embedding=embedding, persist_directory=os.path.join(INDEXES_DIR, file_name[:-3]))
+                retriever.persist()
+                retriever = retriever.as_retriever()
+                retrievers_info.append({
+                    "name": file_name[:-3],
+                    "description": f"Good for answering questions about {file_name[:-3]}",
+                    "retriever": retriever
+                })
+    return retrievers_info
 
-    # Normalize paths in ignore_list
-    ignore_list = [os.path.normpath(path) for path in ignore_list]
+# Initialize the language model
+llm = OpenAI()
 
-    # Walk the directory and generate descriptions for each file
-    file_descriptions = {}
-    for root, dirs, files in os.walk("."):
-        root = os.path.normpath(root)
-        for filename in files:
-            filepath = os.path.join(root, filename)
-            filepath = os.path.normpath(filepath)
-            if not any(ignore in filepath for ignore in ignore_list) and filename.endswith((".txt", ".py")):
-                with open(filepath, 'r', encoding='utf-8', errors='ignore') as file:
-                    content = file.read()
-                try:
-                    description = generate_description(filename, content, is_dir=False)
-                    file_descriptions[filepath] = description
-                except Exception as e:
-                    print(f"Error generating description for {filename}: {e}")
+# Initialize the multi-retrieval question-answering chain
+chain = MultiRetrievalQAChain(llm)
 
-    # Walk the directory again and generate descriptions for each directory based on the file descriptions
-    directory_descriptions = {}
-    for root, dirs, _ in os.walk("."):
-        root = os.path.normpath(root)
-        for dirname in dirs:
-            dirpath = os.path.join(root, dirname)
-            dirpath = os.path.normpath(dirpath)
-            if not any(ignore in dirpath for ignore in ignore_list):
-                dir_file_descriptions = [desc for path, desc in file_descriptions.items() if dirpath in path]
-                dir_summary = ' '.join(dir_file_descriptions)
-                try:
-                    description = generate_description(dirname, "", is_dir=True, dir_summary=dir_summary)
-                    directory_descriptions[dirpath] = description
-                except Exception as e:
-                    print(f"Error generating description for directory {dirname}: {e}")
-    
-    # Print and write the descriptions
-    with open('output.txt', 'w') as f:
-        for filepath, description in file_descriptions.items():
-            print(f"File: {filepath}\nDescription: {description}\n")
-            f.write(f"File: {filepath}\nDescription: {description}\n")
+# Process files from respective directories and add to the chain
+retrievers_info = process_text_files(TEXT_DIR)
+retrievers_info.extend(process_pdf_files(PDF_DIR))
+retrievers_info.extend(process_python_files(BASE_DIR))  # Let's process Python files from base directory
 
-        for dirpath, description in directory_descriptions.items():
-            print(f"Directory: {dirpath}\nDescription: {description}\n")
-            f.write(f"Directory: {dirpath}\nDescription: {description}\n")
+# Add all retrievers to the chain
+for retriever_info in retrievers_info:
+    chain.add_retriever(retriever_info['name'], retriever_info['retriever'], retriever_info['description'])
 
-if __name__ == "__main__":
-    main()
+# Finalize the chain
+chain.finalize()
+
+# Start terminal application
+while True:
+    print("Ask your question (type 'exit' to quit): ")
+    question = input()
+    if question.lower() == 'exit':
+        break
+    answer = chain.ask(question)
+    print("Answer: ", answer)

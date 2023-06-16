@@ -7,3 +7,4 @@ guidance
 diskcache==5.2.1
 notion_client
 altair==4.2.2
+pypdf

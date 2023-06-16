@@ -79,7 +79,7 @@ def get_gpt_response(messages, chain):
                     #st.sidebar.warning("No matching documents found. Generating response using GPT-3...")
                     # Make an API call to the GPT model
                     response = openai.ChatCompletion.create(
-                        model="gpt-4",
+                        model="gpt-4-0613",
                         messages=messages,
                         max_tokens=1000,
                         n=1,
@@ -105,7 +105,7 @@ def get_gpt_response(messages, chain):
         #st.sidebar.warning("No matching documents found. Generating response using GPT-3...")
         # Make an API call to the GPT model
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-4-0613",
             messages=messages,
             max_tokens=1000,
             n=1,
@@ -227,7 +227,7 @@ if 'submit_button' not in st.session_state:
     st.session_state['submit_button'] = False
 
 # Get user's input
-st.session_state['user_input'] = st.text_input("Your Input", "", key="input", label_visibility="hidden")
+st.session_state['user_input'] = st.text_input("Your Input", "", key="input")
 st.session_state['submit_button'] = st.button("Submit")
 
 # Get the answer
