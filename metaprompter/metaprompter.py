@@ -34,7 +34,7 @@ def interactive_chat(user_task, max_iters=3, max_meta_iters=5):
         for step in range(max_iters):
             print(f'Step {step+1}/{max_iters}')
 
-            response = openai.ChatCompletion.create(model="gpt-4", messages=conversation)
+            response = openai.ChatCompletion.create(model="gpt-4-0613", messages=conversation)
             assistant_message = response['choices'][0]['message']['content']
             print(colored("Assistant: ", "green"), assistant_message)
 
@@ -70,7 +70,7 @@ def critique_and_revise_instructions(conversation_history):
     Start your critique with "Critique: ..." and your revised instructions with "Instructions: ...".
     """
 
-    meta_response = openai.ChatCompletion.create(model="gpt-4", messages=[{"role": "user", "content": meta_prompt}])
+    meta_response = openai.ChatCompletion.create(model="gpt-4-0613", messages=[{"role": "user", "content": meta_prompt}])
     meta_text = meta_response['choices'][0]['message']['content']
 
     new_instructions = meta_text.split("Instructions: ")[1].strip()
