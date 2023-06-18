@@ -10,8 +10,8 @@ import plotly.io as pio
 
 # Improved Python code
 
-def load_csv_and_prepare_data(exp_folder, filename):
-    code_search_file = os.path.join(exp_folder, filename)
+def load_csv_and_prepare_data(root_folder, filename):
+    code_search_file = os.path.join(root_folder, filename)
     if os.path.exists(code_search_file):
         df = pd.read_csv(code_search_file)
         df['code_embedding'] = df['code_embedding'].apply(ast.literal_eval)
@@ -54,7 +54,7 @@ def visualize_data_3d(df):
         plot_markers.append(marker)
 
     layout = go.Layout(title='Code Visualization', scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'),
-                       showlegend=True, hovermode='closest', margin={'t': 50, 'b': 50, 'l': 50, 'r': 50},
+                       showlegend=False, hovermode='closest', margin={'t': 50, 'b': 50, 'l': 50, 'r': 50},
                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="Filepaths"))
 
     fig = go.Figure(data=plot_markers, layout=layout)
@@ -67,12 +67,12 @@ if __name__ == "__main__":
     # Dark mode
     pio.templates.default = "plotly_dark"
 
-    folder_name = "experiments"
-    exp_folder = os.path.join(os.getcwd(), folder_name)
-    csv_filename = "code_search_autocoder.csv"
+    folder_name = ""
+    root_folder = os.path.join(os.getcwd(), folder_name)
+    csv_filename = "code_search.csv"
     
     try:
-        df = load_csv_and_prepare_data(exp_folder, csv_filename)
+        df = load_csv_and_prepare_data(root_folder, csv_filename)
         # Visualize in 3D
         visualize_data_3d(df)
     except FileNotFoundError as e:

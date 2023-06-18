@@ -47,14 +47,14 @@ def search_functions(df, code_query, n=3, pprint=True, n_lines=7):
 
 
 folder_name = "."
-exp_folder = os.path.join(os.getcwd(), folder_name)
+root_folder = os.path.join(os.getcwd(), folder_name)
 
 # Create a folder for experiments if it doesn't exist
-if not os.path.exists(exp_folder):
-    os.makedirs(exp_folder)
+if not os.path.exists(root_folder):
+    os.makedirs(root_folder)
 
 # Read or create the code search CSV and load the DataFrame
-code_search_file = os.path.join(exp_folder, "code_search.csv")
+code_search_file = os.path.join(root_folder, "code_search.csv")
 
 # Read .gitignore and compile pathspec
 with open('.gitignore', 'r') as f:
