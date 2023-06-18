@@ -35,7 +35,7 @@ async def python_function_generator_async(purpose):
     global total_tokens_used
 
     response = await openai.ChatCompletion.acreate(
-        model="gpt-3.5-turbo",
+        model="gpt-4-0613",
         messages=[
             {"role": "system", "content": "You are a helpful python programmer who writes excellent functions given a purpose for a function."},
             {"role": "user", "content": f""" write a single python function for the purpose: {purpose}"""}
