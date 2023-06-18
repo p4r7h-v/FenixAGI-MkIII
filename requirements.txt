@@ -13,3 +13,7 @@ pydub
 irc
 simpleaudio
 playsound
+beautifulsoup4
+colorcet
+plotly
+scikit-learn

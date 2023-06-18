@@ -3,6 +3,10 @@ from termcolor import colored
 import re
 import os
 
+def sanitize_filename(filename):
+    filename = re.sub(r'[\\/*?:"<>|]', "", filename)
+    return filename[:100]  # limit filename length
+
 def write_functions_from_json_to_files():
     # extract code from betweeen ```python and ``` using regex
     with open('async.json', errors="ignore") as f:
@@ -13,8 +17,9 @@ def write_functions_from_json_to_files():
                     try:
                         match = re.findall(r"```python(.*?)```", value, re.DOTALL)
                         code = match[0].strip()
-                        file_name = f"{item['purpose']}.py"
+                        file_name = sanitize_filename(f"{item['purpose']}.py")
                         file_path = os.path.join('python_functions', file_name)
+                        file_path = sanitize_filename(file_path)
                         # check if pyton_functions directory exists
                         if not os.path.exists('python_functions'):
                             os.makedirs('python_functions')
@@ -33,7 +38,7 @@ def write_functions_from_json_to_files():
                         print(colored(f"Error extracting code from {item['purpose']}", "red"))
                         continue
 
-# write_functions_from_json_to_files()
+write_functions_from_json_to_files()
 
 # create a search over file names of python_functions directory .implement lowercase search. take user input
 import os
