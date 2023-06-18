@@ -17,3 +17,6 @@ beautifulsoup4
 colorcet
 plotly
 scikit-learn
+chardet
+matplotlib
+pathspec
