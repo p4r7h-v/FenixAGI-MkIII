@@ -136,3 +136,4 @@ def run_conversation():
 
 #print(run_conversation())
 codeSearch.interactive_code_search(df)
+print("Code search token count: ", codeSearch.count_tokens("Code search", "gpt-4-0613"))
