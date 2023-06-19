@@ -76,7 +76,7 @@ class TwitchBot(irc.bot.SingleServerIRCBot):
     def speak_and_send_message(self, message):
         self.engine.say(message)
         self.engine.runAndWait()
-        self.connection.privmsg(self.channel, "C.L.U.: " + message)
+        #self.connection.privmsg(self.channel, "C.L.U.: " + message)
 
 def main():
     load_dotenv()
