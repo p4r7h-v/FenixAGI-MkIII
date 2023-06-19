@@ -10,8 +10,8 @@ import plotly.io as pio
 
 # Improved Python code
 
-def load_csv_and_prepare_data(root_folder, filename):
-    code_search_file = os.path.join(root_folder, filename)
+def load_csv_and_prepare_data(exp_folder, filename):
+    code_search_file = os.path.join(exp_folder, filename)
     if os.path.exists(code_search_file):
         df = pd.read_csv(code_search_file)
         df['code_embedding'] = df['code_embedding'].apply(ast.literal_eval)
