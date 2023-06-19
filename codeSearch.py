@@ -30,15 +30,9 @@ def get_functions(filepath):
             yield {"code": code, "function_name": function_name, "filepath": filepath}
 
 
-# Function to search functions
-def search_functions(df, code_query, n=3, pprint=True, n_lines=7):
+# Similarity search code
+def similarity_search(df, code_query, n=3, pprint=True, n_lines=7):
     embedding = get_embedding(code_query, engine='text-embedding-ada-002')
-    print(colored("embedding query: " + code_query, "green"))
-    #print(colored("embedding: " + str(embedding), "green"))
-    print(colored("embedding type: " + str(type(embedding)), "green"))
-    print(colored("searching for similar functions...", "green"))
-    print(df.code_embedding.shape)
-    print(type(df.code_embedding))
     df['similarities'] = df.code_embedding.apply(
         lambda x: cosine_similarity(ast.literal_eval(x) if isinstance(x, str) else x, embedding))
     
@@ -103,23 +97,49 @@ def create_code_search_csv(folder_name):
     return df
 
 
-def interactive_code_search(df):
+def interactive_code_search(df, n):
     while True:
         code_query = input("Code Search (type 'exit' to quit): ")
         if code_query.lower() == 'exit':
             break
 
         print('Searching functions...')
-        res = search_functions(df, code_query, n=10, pprint=False)
+        res = similarity_search(df, code_query, n=n, pprint=False)
 
         if res is not None:
             print(colored("Search Results", 'yellow'))
+            results = []
             for r in res.iterrows():
                 print(colored(f"{r[1].function_name} ({r[1].filepath}): score={round(r[1].similarities, 3)}", 'green'))
                 print(r[1].code)
                 print(colored('-'*70, 'yellow'))
+                results.append({
+                    "function_name": r[1].function_name,
+                    "filepath": r[1].filepath,
+                    "score": round(r[1].similarities, 3),
+                    "code": r[1].code,
+                })
+    return results
 
+def search_codebase(df, code_query, n):
+    print('Searching functions...')
+    res = similarity_search(df, code_query, n=n, pprint=False)
+
+    if res is not None:
+        print(colored("Search Results", 'yellow'))
+        results = []
+        for r in res.iterrows():
+            print(colored(f"{r[1].function_name} ({r[1].filepath}): score={round(r[1].similarities, 3)}", 'green'))
+            print(r[1].code)
+            print(colored('-'*70, 'yellow'))
+            results.append({
+                "function_name": r[1].function_name,
+                "filepath": r[1].filepath,
+                "score": round(r[1].similarities, 3),
+                "code": r[1].code,
+                })
+    return results
 
 if __name__ == "__main__":
     df = create_code_search_csv('.')
-    interactive_code_search(df)
+    interactive_code_search(df,3)

@@ -2,8 +2,9 @@ import openai
 import json
 import os
 import codeSearch
-from codeSearch import interactive_code_search
+from codeSearch import search_codebase
 import pandas as pd
+from token_counter import count_tokens
 
 #Function df
 df = None
@@ -46,7 +47,7 @@ def get_current_wind_speed(location, unit="mph"):
 # Step 1, send model the user query and what functions it has access to
 def run_conversation():
     response = openai.ChatCompletion.create(
-        model="gpt-4-0613",
+        model="gpt-3.5-turbo-16k-0613",
         messages=[{"role": "user", "content": "What's the wind like in Boston?"}],
         functions=[
             {
@@ -135,5 +136,20 @@ def run_conversation():
         return second_response
 
 #print(run_conversation())
-codeSearch.interactive_code_search(df)
-print("Code search token count: ", codeSearch.count_tokens("Code search", "gpt-4-0613"))
+#results = search_codebase(df, "gpt", 1)
+#print("Found {} functions:".format(len(results)))
+# Search for the 'search_codebase' function
+results = search_codebase(df, "search_codebase", 1)
+
+# Check if any results are found
+if len(results) > 0:
+    # Get the code of the first (and in this case, only) result
+    code = results[0]["code"]
+    print(code)
+    # Execute the code
+    #exec(code)
+
+    # After exec, the function will be available in the current scope, so you can call it like this:
+    #new_results = search_codebase(df, "some_other_function", 5)
+else:
+    print("No function found")
