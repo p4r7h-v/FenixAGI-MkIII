@@ -67,7 +67,6 @@ class TwitchBot(irc.bot.SingleServerIRCBot):
 
         elif command == "!socials":
             self.connection.privmsg(self.channel, "Follow me on Twitter: " + self.twitter_link)
-            self.connection.privmsg(self.channel, "Follow me on Clubhouse: " + self.clubhouse_link)
             self.connection.privmsg(self.channel, "Try my projects on Replit: " + self.replit_link)
 
         elif command == "!commands" or command == "!help":

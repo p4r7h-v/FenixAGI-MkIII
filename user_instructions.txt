@@ -1,0 +1,28 @@
+Here are the detailed instructions for the given Python code:
+
+1. Import necessary libraries: `os`, `openai`, and `termcolor`.
+2. Set the OpenAI API key using the `os.getenv()` method.
+3. Define a function `get_user_input(prompt_text)` that takes a prompt text as input and returns the user's input after validating that it is not empty.
+4. Define a function `get_user_feedback()` that collects user feedback line by line until the user enters 'done'. The function returns the collected feedback as a string.
+5. Define a function `interactive_chat(user_task, max_iters=3, max_meta_iters=5)` that takes a user task, maximum iterations, and maximum meta iterations as input and performs the following steps:
+    a. Initialize a variable `instructions` with the value 'None'.
+    b. Loop through the range of maximum meta iterations.
+        i. Initialize a conversation list with a system message containing the instructions and a user message containing the user task.
+        ii. Loop through the range of maximum iterations.
+            1. Call the OpenAI API with the conversation list and store the response.
+            2. Extract the assistant's message from the response and print it.
+            3. Append the assistant's message to the conversation list.
+            4. Collect user feedback using the `get_user_feedback()` function and append it to the conversation list.
+            5. Check if the user feedback contains a success or failure phrase. If it does, print the appropriate message and return.
+    c. Call the `critique_and_revise_instructions()` function with the conversation list and update the instructions variable with the returned value.
+6. Define a function `critique_and_revise_instructions(conversation_history)` that takes a conversation history as input and performs the following steps:
+    a. Convert the conversation history into a chat log string.
+    b. Create a meta prompt using the chat log string.
+    c. Call the OpenAI API with the meta prompt and store the response.
+    d. Extract the new instructions from the response and print them.
+    e. Return the new instructions.
+7. In the main block of the code, get the user's task using the `get_user_input()` function.
+8. While the user's task is not 'done', call the `interactive_chat()` function with the user's task and update the user's task using the `get_user_input()` function.
+9. Print a thank you message when the user enters 'done'.
+
+This Python code is designed to interact with the user and an AI assistant to complete a given task. The code uses the OpenAI API to generate responses from the AI assistant and iteratively refines the instructions based on user feedback. The code also includes error handling and colored terminal text for better readability.

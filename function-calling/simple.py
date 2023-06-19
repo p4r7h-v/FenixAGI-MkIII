@@ -3,7 +3,6 @@ import json
 import os
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
-# openai.api_key = "sk-<your key here>"
 
 # Example dummy function hard coded to return the same weather
 # In production, this could be your backend API or an external API
@@ -15,13 +14,31 @@ def get_current_weather(location, unit="fahrenheit"):
         "unit": unit,
         "forecast": ["sunny", "windy"],
     }
-    return json.dumps(weather_info)
+    return json.dumps(weather_info)  # <--- add this line
+
+def get_current_humidity(location):
+    """Get the current humidity in a given location"""
+    humidity_info = {
+        "location": location,
+        "humidity": "60%",  # Example hard coded value
+    }
+    return json.dumps(humidity_info)
+
+
+def get_current_wind_speed(location, unit="mph"):
+    """Get the current wind speed in a given location"""
+    wind_speed_info = {
+        "location": location,
+        "wind_speed": "10",
+        "unit": unit,  # Example hard coded value
+    }
+    return json.dumps(wind_speed_info)
 
 # Step 1, send model the user query and what functions it has access to
 def run_conversation():
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-0613",
-        messages=[{"role": "user", "content": "What's the weather like in Boston?"}],
+        model="gpt-4-0613",
+        messages=[{"role": "user", "content": "What's the wind like in Boston?"}],
         functions=[
             {
                 "name": "get_current_weather",
@@ -37,6 +54,35 @@ def run_conversation():
                     },
                     "required": ["location"],
                 },
+            },
+            {
+                "name": "get_current_humidity",
+                "description": "Get the current humidity in a given location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        },
+                    },
+                    "required": ["location"],
+                },
+            },
+            {
+                "name": "get_current_wind_speed",
+                "description": "Get the current wind speed in a given location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        },
+                        "unit": {"type": "string", "enum": ["kph", "mph"]},
+                    },
+                    "required": ["location"],
+                },
             }
         ],
         function_call="auto",
@@ -45,22 +91,30 @@ def run_conversation():
     message = response["choices"][0]["message"]
     print(message)
 
-    # Step 2, check if the model wants to call a function
     if message.get("function_call"):
         function_name = message["function_call"]["name"]
 
-        # Step 3, call the function
-        # Note: the JSON response from the model may not be valid JSON
-        function_response = get_current_weather(
-            location=message.get("location"),
-            unit=message.get("unit"),
-        )
+        if function_name == "get_current_weather":
+            function_response = get_current_weather(
+                location=message.get("location"),
+                unit=message.get("unit"),
+            )
+        elif function_name == "get_current_humidity":
+            function_response = get_current_humidity(
+                location=message.get("location"),
+            )
+        elif function_name == "get_current_wind_speed":
+            function_response = get_current_wind_speed(
+                location=message.get("location"),
+                unit=message.get("unit"),
+            )
+        else:
+            return "Unknown function: " + function_name
 
-        # Step 4, send model the info on the function call and function response
         second_response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo-0613",
+            model="gpt-4-0613",
             messages=[
-                {"role": "user", "content": "What is the weather like in boston?"},
+                {"role": "user", "content": "What is the weather like in Boston?"},
                 message,
                 {
                     "role": "function",

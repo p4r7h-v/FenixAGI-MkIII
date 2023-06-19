@@ -33,9 +33,15 @@ def get_functions(filepath):
 # Function to search functions
 def search_functions(df, code_query, n=3, pprint=True, n_lines=7):
     embedding = get_embedding(code_query, engine='text-embedding-ada-002')
+    print(colored("embedding query: " + code_query, "green"))
+    #print(colored("embedding: " + str(embedding), "green"))
+    print(colored("embedding type: " + str(type(embedding)), "green"))
+    print(colored("searching for similar functions...", "green"))
+    print(df.code_embedding.shape)
+    print(type(df.code_embedding))
     df['similarities'] = df.code_embedding.apply(
-        lambda x: cosine_similarity(x, embedding))
-
+        lambda x: cosine_similarity(ast.literal_eval(x) if isinstance(x, str) else x, embedding))
+    
     res = df.sort_values('similarities', ascending=False).head(n)
     if pprint:
         for r in res.iterrows():
@@ -46,68 +52,74 @@ def search_functions(df, code_query, n=3, pprint=True, n_lines=7):
     return res
 
 
-folder_name = "."
-root_folder = os.path.join(os.getcwd(), folder_name)
+def create_code_search_csv(folder_name):
+    root_folder = os.path.join(os.getcwd(), folder_name)
 
-# Create a folder for experiments if it doesn't exist
-if not os.path.exists(root_folder):
-    os.makedirs(root_folder)
+    if not os.path.exists(root_folder):
+        os.makedirs(root_folder)
 
-# Read or create the code search CSV and load the DataFrame
-code_search_file = os.path.join(root_folder, "code_search.csv")
+    code_search_file = os.path.join(root_folder, "code_search.csv")
 
-# Read .gitignore and compile pathspec
-with open('.gitignore', 'r') as f:
-    gitignore = f.read()
-gitignore_spec = pathspec.PathSpec.from_lines(pathspec.patterns.GitWildMatchPattern, gitignore.splitlines())
+    with open('.gitignore', 'r') as f:
+        gitignore = f.read()
+    gitignore_spec = pathspec.PathSpec.from_lines(pathspec.patterns.GitWildMatchPattern, gitignore.splitlines())
 
-if os.path.exists(code_search_file):
-    df = pd.read_csv(code_search_file)
-    df['code_embedding'] = df['code_embedding'].apply(ast.literal_eval)
-else:
-    code_files = []
-    for root, dirs, files in os.walk(exp_folder):
-        for file in files:
-            if file.endswith('.py'):
-                file_path = os.path.join(root, file)
-                if not gitignore_spec.match_file(file_path):
-                    code_files.append(file_path)
-
-    print("Total number of py files:", len(code_files))
-
-    if len(code_files) == 0:
-        print("No files detected.")
-
-    all_funcs = []
-    for code_file in code_files:
-        funcs = list(get_functions(code_file))
-        for func in funcs:
-            all_funcs.append(func)
-
-    print("Total number of functions extracted:", len(all_funcs))
-
-    df = pd.DataFrame(all_funcs)
-
-    if df.empty:
-        print("Warning: No functions found in the code files.")
+    if os.path.exists(code_search_file):
+        df = pd.read_csv(code_search_file)
+        print(f"Before conversion: {type(df['code_embedding'].iloc[0])}")  # Add this line
+        df['code_embedding'] = df['code_embedding'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
+        print(f"After conversion: {type(df['code_embedding'].iloc[0])}")  # And this line
     else:
-        # Apply the function to the 'code' column
-        df['code_embedding'] = df['code'].apply(lambda x: get_embedding(x, engine='text-embedding-ada-002'))
-        df['filepath'] = df['filepath'].apply(lambda x: x.replace(exp_folder, ""))
-        df.to_csv(code_search_file, index=False)
-        print("Code Search Online.")
+        code_files = []
+        for root, dirs, files in os.walk(folder_name):
+            for file in files:
+                if file.endswith('.py'):
+                    file_path = os.path.join(root, file)
+                    if not gitignore_spec.match_file(file_path):
+                        code_files.append(file_path)
 
-while True:
-    code_query = input("Code Search (type 'exit' to quit): ")
-    if code_query.lower() == 'exit':
-        break
+        print("Total number of py files:", len(code_files))
 
-    print('Searching functions...')
-    res = search_functions(df, code_query, n=10, pprint=False)
+        if len(code_files) == 0:
+            print("No files detected.")
 
-    if res is not None:
-        print(colored("Search Results", 'yellow'))
-        for r in res.iterrows():
-            print(colored(f"{r[1].function_name} ({r[1].filepath}): score={round(r[1].similarities, 3)}", 'green'))
-            print(r[1].code)
-            print(colored('-'*70, 'yellow'))
+        all_funcs = []
+        for code_file in code_files:
+            funcs = list(get_functions(code_file))
+            for func in funcs:
+                all_funcs.append(func)
+
+        print("Total number of functions extracted:", len(all_funcs))
+
+        df = pd.DataFrame(all_funcs)
+
+        if df.empty:
+            print("Warning: No functions found in the code files.")
+        else:
+            df['code_embedding'] = df['code'].apply(lambda x: get_embedding(x, engine='text-embedding-ada-002'))
+            df['filepath'] = df['filepath'].apply(lambda x: x.replace(folder_name, ""))
+            df.to_csv(code_search_file, index=False)
+            print("Code Search Online.")
+    return df
+
+
+def interactive_code_search(df):
+    while True:
+        code_query = input("Code Search (type 'exit' to quit): ")
+        if code_query.lower() == 'exit':
+            break
+
+        print('Searching functions...')
+        res = search_functions(df, code_query, n=10, pprint=False)
+
+        if res is not None:
+            print(colored("Search Results", 'yellow'))
+            for r in res.iterrows():
+                print(colored(f"{r[1].function_name} ({r[1].filepath}): score={round(r[1].similarities, 3)}", 'green'))
+                print(r[1].code)
+                print(colored('-'*70, 'yellow'))
+
+
+if __name__ == "__main__":
+    df = create_code_search_csv('.')
+    interactive_code_search(df)

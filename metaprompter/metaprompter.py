@@ -1,58 +1,75 @@
 import os
 import openai
 from termcolor import colored
+from token_counter import count_tokens
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def get_user_input(prompt_text):
+def load_instructions_from_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        return "You are a helpful assistant."
+
+def save_instructions_to_file(file_path, instructions):
+    with open(file_path, 'w') as file:
+        file.write(instructions)
+        
+def interactive_chat(user_task, instructions_file_path):
+    instructions = load_instructions_from_file(instructions_file_path)
+    print(colored(f"Opening Task: {user_task}", "yellow"))
+
+    conversation = [{"role": "system", "content": instructions}, {
+            "role": "user", "content": user_task}]
     while True:
-        user_input = input(colored(prompt_text, "cyan"))
-        if user_input.strip():
-            return user_input
-        print(colored("Input can't be empty, try again.", "red"))
+        response = openai.ChatCompletion.create(
+            model="gpt-4-0613",
+            messages=conversation,
+            stream=True,
+        )
 
-def get_user_feedback():
-    feedback = ""
-    print(colored("Enter user feedback below. When finished, enter 'done'.", "cyan"))
-    while True:
-        line = input(colored("> ", "cyan"))
-        if line.lower() == "done":
-            break
-        feedback += line + "\n"
-    return feedback.strip()
+        responses = ''
 
-def interactive_chat(user_task, max_iters=3, max_meta_iters=5):
-    SUCCESS_PHRASE = 'task succeeded'
-    FAIL_PHRASE = 'task failed'
-    KEY_PHRASES = [SUCCESS_PHRASE, FAIL_PHRASE]
+        # Process each chunk
+        for chunk in response:
+            if "role" in chunk["choices"][0]["delta"]:
+                continue
+            elif "content" in chunk["choices"][0]["delta"]:
+                r_text = chunk["choices"][0]["delta"]["content"]
+                responses += r_text
+                print(r_text, end='', flush=True)
 
-    instructions = 'None'
-    for iteration in range(max_meta_iters):
-        print(f'\n[Iteration {iteration+1}/{max_meta_iters}]\n')
-        conversation = [{"role": "system", "content": instructions}, {"role": "user", "content": user_task}]
+        assistant_message = responses
+        print("Token count is:", count_tokens(assistant_message))
 
-        for step in range(max_iters):
-            print(f'Step {step+1}/{max_iters}')
+        conversation.append(
+            {"role": "assistant", "content": assistant_message})
 
-            response = openai.ChatCompletion.create(model="gpt-4-0613", messages=conversation)
-            assistant_message = response['choices'][0]['message']['content']
-            print(colored("Assistant: ", "green"), assistant_message)
-
-            conversation.append({"role": "assistant", "content": assistant_message})
-
-            user_feedback = get_user_feedback()
-            conversation.append({"role": "user", "content": user_feedback})
-            
-            if user_feedback.lower() in KEY_PHRASES:
-                print('Success!' if user_feedback.lower() == SUCCESS_PHRASE else 'Failure. Thanks for participating!')
+        # Collect multiline user feedback
+        user_feedback = ""
+        print(colored("Type your message. When finished, type 'done')", "cyan"))
+        print(colored("Type '~' to update Meta Instructions)", "cyan"))
+        print(colored("Type '.' to end the session)", "cyan"))
+        while True:
+            line = input(colored("> ", "cyan"))
+            if line.lower() == 'done':
+                break
+            elif line.lower() == '~':
+                instructions = critique_and_revise_instructions(conversation)
+                save_instructions_to_file(instructions_file_path, instructions)
+                print(colored('Meta Instructions saved.', 'green'))
                 return
+            elif line.lower() == '.':
+                print(colored('Session ended. Thanks for participating!', 'green'))
+                return
+            user_feedback += line + "\n"
 
-        instructions = critique_and_revise_instructions(conversation)
-
-    print('Task failed after maximum iterations. Thanks for participating!')
+        conversation.append({"role": "user", "content": user_feedback.strip()})
 
 def critique_and_revise_instructions(conversation_history):
-    chat_log = '\n'.join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation_history])
+    chat_log = '\n'.join(
+        [f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation_history])
 
     meta_prompt = f"""The Assistant has just had the following interactions with a User. Please critique the Assistant's performance and revise the Instructions based on the interactions.
 
@@ -70,18 +87,27 @@ def critique_and_revise_instructions(conversation_history):
     Start your critique with "Critique: ..." and your revised instructions with "Instructions: ...".
     """
 
-    meta_response = openai.ChatCompletion.create(model="gpt-4-0613", messages=[{"role": "user", "content": meta_prompt}])
+    meta_response = openai.ChatCompletion.create(
+        model="gpt-4-0613",
+        messages=[{"role": "user", "content": meta_prompt}]
+
+    )
     meta_text = meta_response['choices'][0]['message']['content']
 
     new_instructions = meta_text.split("Instructions: ")[1].strip()
-
-    print(f'\nNew Instructions: {new_instructions}\n' + '#' * 80 + '\n')
+    
+    print(colored(
+        f'\nNew Instructions: {new_instructions}\n' + '#' * 80 + '\n', 'magenta'))
 
     return new_instructions
 
 if __name__ == '__main__':
-    user_task = get_user_input("Enter User Instructions for a task. When finished, enter 'done': ")
-    while user_task.lower() != 'done':
-        interactive_chat(user_task)
-        user_task = get_user_input("\nYou can enter a new task or 'done' to exit: ")
-    print('Thanks for participating!')
+    instructions_file_path = "metaPrompter/instructions.txt"
+    while True:  # create an outer loop for multiple tasks
+        user_task = ''
+        print(colored('\n[New Task]\n', "yellow"))
+        user_task = input(colored("Type your task. When finished, type 'done')\n> ", "cyan"))
+        if user_task.lower() == 'done':
+            break
+        interactive_chat(user_task, instructions_file_path)
+    print(colored('Thanks for participating!', 'green'))

@@ -1,12 +1,5 @@
 import tiktoken
 
-encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-def count_tokens(text):
+def count_tokens(text, model_name="gpt-4-0613"):
+    encoding = tiktoken.encoding_for_model(model_name)
     return len(encoding.encode(text))
-
-to_be_counted = """
-
-
-"""
-
-print("token count is: " , count_tokens(to_be_counted))
