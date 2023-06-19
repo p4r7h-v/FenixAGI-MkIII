@@ -7,6 +7,7 @@ from termcolor import colored
 import pathspec
 from openai.embeddings_utils import get_embedding
 from openai.embeddings_utils import cosine_similarity
+import json
 
 # Function to get functions from code_file
 def get_functions(filepath):
@@ -60,9 +61,9 @@ def create_code_search_csv(folder_name):
 
     if os.path.exists(code_search_file):
         df = pd.read_csv(code_search_file)
-        print(f"Before conversion: {type(df['code_embedding'].iloc[0])}")  # Add this line
+        #print(f"Before conversion: {type(df['code_embedding'].iloc[0])}")  # Add this line
         df['code_embedding'] = df['code_embedding'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
-        print(f"After conversion: {type(df['code_embedding'].iloc[0])}")  # And this line
+        #print(f"After conversion: {type(df['code_embedding'].iloc[0])}")  # And this line
     else:
         code_files = []
         for root, dirs, files in os.walk(folder_name):
@@ -99,7 +100,7 @@ def create_code_search_csv(folder_name):
 
 def interactive_code_search(df, n):
     while True:
-        code_query = input("Code Search (type 'exit' to quit): ")
+        code_query = input("Code Search (type 'exit' to quit): ")   
         if code_query.lower() == 'exit':
             break
 
@@ -121,7 +122,8 @@ def interactive_code_search(df, n):
                 })
     return results
 
-def search_codebase(df, code_query, n):
+def search_codebase(code_query, n):
+    df = create_code_search_csv('.')
     print('Searching functions...')
     res = similarity_search(df, code_query, n=n, pprint=False)
 
@@ -138,7 +140,7 @@ def search_codebase(df, code_query, n):
                 "score": round(r[1].similarities, 3),
                 "code": r[1].code,
                 })
-    return results
+    return json.dumps(results)
 
 if __name__ == "__main__":
     df = create_code_search_csv('.')
