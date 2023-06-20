@@ -19,7 +19,7 @@ def bing_search_save(query):
         for result in search_results["webPages"]["value"]:
             file.write(result["url"] + "\n")
             links.append(result["url"])
-    return str(links)
+    return links
 
 if __name__ == "__main__":
     bing_search_save("information on langchain")

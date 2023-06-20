@@ -1,7 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 
-def scrape_website(url, target_tag):
+def scrape_website(url):
+    """Scrape a website and return the data"""
+    target_tag = "p"
     try:
         # Access the website
         response = requests.get(url)
@@ -19,8 +21,10 @@ def scrape_website(url, target_tag):
         print(f"An error occurred while accessing the website: {e}")
         return None
 
-# Example usage:
-url = "https://docs.langchain.com/docs/"
-target_tag = "p"
-data = scrape_website(url, target_tag)
-print(data)
+if __name__ == "__main__":
+    # Scrape the website
+    data = scrape_website(
+        url="https://en.wikipedia.org/wiki/Python_(programming_language)",
+        target_tag="p",
+    )
+    print(data)

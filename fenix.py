@@ -7,13 +7,20 @@ from termcolor import colored
 import codeSearch
 from codeSearch import search_codebase
 from bingSearch import bing_search_save
+from basicScraper import scrape_website
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+approved_functions = [
+    "search_codebase",
+    "bing_search_save",
+    "scrape_website"
+]
 
 # Step 1, send model the user query and what functions it has access to
 def run_conversation():
     while True:
-        user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit: ", 'yellow'))
+        user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
         if user_input.lower() in ["exit", "quit"]:
             break
         response = openai.ChatCompletion.create(
@@ -51,17 +58,31 @@ def run_conversation():
                         },
                         "required": ["query"],
                     }
-                }
+                },
+                {
+                    "name": "scrape_website",
+                    "description": "Scrape a website and save the results to a txt file",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "description": "The url to scrape",
+                            }
+                        },
+                        "required": ["url"],
+                    }
+                },
             ],
             function_call="auto", 
         )
-
+        
         message = response["choices"][0]["message"]
         print(colored("Function Call:" + str(message.get("function_call")), 'blue'))
         if message.get("function_call"):
             function_name = message["function_call"]["name"]
             args = json.loads(message["function_call"]["arguments"])
-            if function_name in ["search_codebase","bing_search_save"]:
+            if function_name in ["search_codebase","bing_search_save","scrape_website"]:
                 print(colored("Function Name: " + function_name, 'green'))
                 print(colored("Function Args: " + str(args), 'green'))
                 # Execute Function?
@@ -80,12 +101,12 @@ def run_conversation():
                     {
                         "role": "function",
                         "name": function_name,
-                        "content": function_response,
+                        "content": str(function_response),
                     },
                 ],
                 stream=True,
             )
-            # 
+            
             responses = ''
 
             # Process each chunk
