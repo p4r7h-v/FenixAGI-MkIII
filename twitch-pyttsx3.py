@@ -48,9 +48,9 @@ class TwitchBot(irc.bot.SingleServerIRCBot):
 
         elif command.startswith("!clu"):
             prompt = command.replace("!clu", "")
-            system_message = "Your role is to act as a helpful assistant on a live stream. This stream, run by Parth, showcases programming with GPT-4. The stream features generative code and autonomous agents built in python. Your task is to assist viewers by answering their questions and providing context around the stream. You only respond on topics relevant to the programming. Keep your answers short and to the point."
+            system_message = "Your role is to act as a helpful assistant on a live stream. This stream, run by Parth, showcases programming with GPT-4. The stream features generative code and autonomous agents built in python. He might also work on bass music in Ableton. Your task is to assist viewers by answering their questions and providing context around the stream. You only respond on topics relevant to the programming. Keep your answers short and to the point."
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo-0613",
+                model="gpt-4-0613",
                 messages=[
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
@@ -70,13 +70,13 @@ class TwitchBot(irc.bot.SingleServerIRCBot):
             self.connection.privmsg(self.channel, "Try my projects on Replit: " + self.replit_link)
 
         elif command == "!commands" or command == "!help":
-            commands = ["!hello", "!shoutout", "!uptime", "!clu", "!rules", "!socials", "!replit"]
+            commands = ["!hello", "!shoutout", "!uptime", "!clu", "!rules", "!socials",]
             self.connection.privmsg(self.channel, "Available commands: " + ', '.join(commands))
 
     def speak_and_send_message(self, message):
         self.engine.say(message)
         self.engine.runAndWait()
-        #self.connection.privmsg(self.channel, "C.L.U.: " + message)
+        self.connection.privmsg(self.channel, "C.L.U.: " + message)
 
 def main():
     load_dotenv()
