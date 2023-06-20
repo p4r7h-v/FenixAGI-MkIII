@@ -10,6 +10,7 @@ def sanitize_filename(filename):
 def write_functions_from_json_to_files():
     # extract code from betweeen ```python and ``` using regex
     with open('async.json', errors="ignore") as f:
+        print(colored("Writing functions to files...", "green"))
         data = json.load(f)
         for item in data:
             for key, value in item.items():
@@ -17,17 +18,17 @@ def write_functions_from_json_to_files():
                     try:
                         match = re.findall(r"```python(.*?)```", value, re.DOTALL)
                         code = match[0].strip()
-                        file_name = sanitize_filename(f"{item['purpose']}.py")
-                        file_path = os.path.join('python_functions', file_name)
-                        file_path = sanitize_filename(file_path)
-                        # check if pyton_functions directory exists
+                        file_name = sanitize_filename(f"{item['purpose']}")
+                        file_name = file_name + ".py"
+                        # check if python_functions directory exists
                         if not os.path.exists('python_functions'):
                             os.makedirs('python_functions')
+                        file_path = os.path.join('python_functions', file_name)
                         if os.path.exists(file_path):
                             i = 1
-                            while os.path.exists(os.path.join('python_functions', f"{item['purpose']}_{i}.py")):
+                            while os.path.exists(os.path.join('python_functions', f"{file_name}_{i}.py")):
                                 i += 1
-                            file_path = os.path.join('python_functions', f"{item['purpose']}_{i}.py")
+                            file_path = os.path.join('python_functions', f"{file_name}_{i}.py")
                         with open(file_path, "w") as f:
                             try:
                                 f.write(code)
@@ -38,10 +39,8 @@ def write_functions_from_json_to_files():
                         print(colored(f"Error extracting code from {item['purpose']}", "red"))
                         continue
 
-write_functions_from_json_to_files()
 
-# create a search over file names of python_functions directory .implement lowercase search. take user input
-import os
+
 
 def search_python_functions():
     while True:
@@ -75,5 +74,5 @@ def search_python_functions():
             except ValueError:
                 print("Invalid choice. Please enter a number between 1 and", len(files), "or '0' to perform a new search.")
 
-
+write_functions_from_json_to_files()
 search_python_functions()

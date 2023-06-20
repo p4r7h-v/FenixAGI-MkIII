@@ -20,7 +20,7 @@ def scrape_website(url, target_tag):
         return None
 
 # Example usage:
-url = "https://github.com/microsoft/guidance"
+url = "https://docs.langchain.com/docs/"
 target_tag = "p"
 data = scrape_website(url, target_tag)
 print(data)

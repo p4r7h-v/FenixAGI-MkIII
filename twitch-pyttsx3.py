@@ -57,26 +57,49 @@ class TwitchBot(irc.bot.SingleServerIRCBot):
                 ],
                 max_tokens=200
             )
-
             assistant_message = response['choices'][0]['message']['content']
             print(assistant_message)
             self.speak_and_send_message(assistant_message)
 
         elif command == "!rules":
             self.connection.privmsg(self.channel, "Chat Rules: " + self.rules)
+        
+        elif command == "!fun":
+            self.send_fun_fact(connection)
 
         elif command == "!socials":
             self.connection.privmsg(self.channel, "Follow me on Twitter: " + self.twitter_link)
             self.connection.privmsg(self.channel, "Try my projects on Replit: " + self.replit_link)
 
         elif command == "!commands" or command == "!help":
-            commands = ["!hello", "!shoutout", "!uptime", "!clu", "!rules", "!socials",]
+            commands = ["!hello", "!commands","!help","!shoutout", "!uptime", "!clu", "!rules", "!socials","!fun",]
             self.connection.privmsg(self.channel, "Available commands: " + ', '.join(commands))
 
     def speak_and_send_message(self, message):
         self.engine.say(message)
         self.engine.runAndWait()
-        self.connection.privmsg(self.channel, "C.L.U.: " + message)
+        max_length = 500  # 500 to allow some space for additional protocol characters
+        messages = [message[i:i + max_length] for i in range(0, len(message), max_length)]
+
+        for msg in messages:
+            self.connection.privmsg(self.channel, "C.L.U.: " + msg)
+            time.sleep(1)  # Add delay to prevent flooding the server with messages
+
+
+    def send_fun_fact(self, connection):
+        system_message = "Your role is to generate a fun fact related to autonomous python agents built on LLMs or on sound design."
+        response = openai.ChatCompletion.create(
+        model="gpt-4-0613",
+        messages=[
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": "Give me a fun fact"}
+        ],
+        max_tokens=500,
+        temperature=1
+        )
+        fun_fact = response['choices'][0]['message']['content']
+        self.speak_and_send_message("Fun fact: " + fun_fact)
+
 
 def main():
     load_dotenv()

@@ -11,6 +11,9 @@ from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import openai
 
+
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
 # Function to get a GPT-generated response
 def get_gpt_response(messages, chain):
     user_message = messages[-1]['content']
@@ -55,7 +58,6 @@ def get_gpt_response(messages, chain):
 
 
 def main():
-    os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
     try:
         embedding = OpenAIEmbeddings()

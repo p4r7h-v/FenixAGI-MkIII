@@ -9,42 +9,6 @@ from openai.embeddings_utils import get_embedding
 from openai.embeddings_utils import cosine_similarity
 import json
 
-# Function to get functions from code_file
-def get_functions(filepath):
-    with open(filepath, 'rb') as f:
-        file_content = f.read()
-        result = chardet.detect(file_content)
-    encoding = result['encoding'] or 'utf-8'
-    whole_code = file_content.decode(
-        encoding, errors='ignore').replace("\r", "\n")
-
-    try:
-        tree = ast.parse(whole_code)
-    except SyntaxError:
-        # skip files with syntax errors
-        return
-
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            function_name = node.name
-            code = astor.to_source(node)
-            yield {"code": code, "function_name": function_name, "filepath": filepath}
-
-
-# Similarity search code
-def similarity_search(df, code_query, n=3, pprint=True, n_lines=7):
-    embedding = get_embedding(code_query, engine='text-embedding-ada-002')
-    df['similarities'] = df.code_embedding.apply(
-        lambda x: cosine_similarity(ast.literal_eval(x) if isinstance(x, str) else x, embedding))
-    
-    res = df.sort_values('similarities', ascending=False).head(n)
-    if pprint:
-        for r in res.iterrows():
-            print(r[1].filepath+":"+r[1].function_name +
-                  "  score=" + str(round(r[1].similarities, 3)))
-            print("\n".join(r[1].code.split("\n")[:n_lines]))
-            print('-'*70)
-    return res
 
 
 def create_code_search_csv(folder_name):
@@ -97,6 +61,44 @@ def create_code_search_csv(folder_name):
             print("Code Search Online.")
     return df
 
+# Function to get functions from code_file
+def get_functions(filepath):
+    with open(filepath, 'rb') as f:
+        file_content = f.read()
+        result = chardet.detect(file_content)
+    encoding = result['encoding'] or 'utf-8'
+    whole_code = file_content.decode(
+        encoding, errors='ignore').replace("\r", "\n")
+
+    try:
+        tree = ast.parse(whole_code)
+    except SyntaxError:
+        # skip files with syntax errors
+        return
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            function_name = node.name
+            code = astor.to_source(node)
+            yield {"code": code, "function_name": function_name, "filepath": filepath}
+
+
+# Similarity search code
+def similarity_search(df, code_query, n=3, pprint=True, n_lines=7):
+    embedding = get_embedding(code_query, engine='text-embedding-ada-002')
+    df['similarities'] = df.code_embedding.apply(
+        lambda x: cosine_similarity(ast.literal_eval(x) if isinstance(x, str) else x, embedding))
+    
+    res = df.sort_values('similarities', ascending=False).head(n)
+    if pprint:
+        for r in res.iterrows():
+            print(r[1].filepath+":"+r[1].function_name +
+                  "  score=" + str(round(r[1].similarities, 3)))
+            print("\n".join(r[1].code.split("\n")[:n_lines]))
+            print('-'*70)
+    return res
+
+
 
 def interactive_code_search(df, n):
     while True:
@@ -132,7 +134,7 @@ def search_codebase(code_query, n):
         results = []
         for r in res.iterrows():
             print(colored(f"{r[1].function_name} ({r[1].filepath}): score={round(r[1].similarities, 3)}", 'green'))
-            print(r[1].code)
+            #print(r[1].code)
             print(colored('-'*70, 'yellow'))
             results.append({
                 "function_name": r[1].function_name,
