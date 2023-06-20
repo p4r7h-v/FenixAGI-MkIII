@@ -88,7 +88,7 @@ def critique_and_revise_instructions(conversation_history):
     """
 
     meta_response = openai.ChatCompletion.create(
-        model="gpt-4-0613",
+        model="gpt-3.5-turbo-16k-0613",
         messages=[{"role": "user", "content": meta_prompt}]
 
     )

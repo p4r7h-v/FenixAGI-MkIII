@@ -8,24 +8,30 @@ import codeSearch
 from codeSearch import search_codebase
 from bingSearch import bing_search_save
 from basicScraper import scrape_website
+from metaPrompter.metaPrompter import load_instructions_from_file, save_instructions_to_file, critique_and_revise_instructions
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 approved_functions = [
     "search_codebase",
     "bing_search_save",
-    "scrape_website"
+    "scrape_website",
+    "load_instructions_from_file",
 ]
 
 # Step 1, send model the user query and what functions it has access to
 def run_conversation():
+    instructions = load_instructions_from_file("fenix_instructions.txt")
+    print(colored(f"Launching Fenix", "yellow"))
+    user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
+    conversation = [{"role": "system", "content": instructions}, {
+            "role": "user", "content": user_input}]
     while True:
-        user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
         if user_input.lower() in ["exit", "quit"]:
             break
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo-16k-0613",
-            messages=[{"role": "user", "content": user_input}],
+            messages=conversation,
             functions=[
                 {
                     "name": "search_codebase",
@@ -73,16 +79,31 @@ def run_conversation():
                         "required": ["url"],
                     }
                 },
+                {
+                    "name": "load_instructions_from_file",
+                    "description": "Load instructions from a file",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "description": "The filepath to load",
+                            }
+                        },
+                        "required": ["filepath"],
+                    }
+                },
             ],
             function_call="auto", 
         )
         
+
         message = response["choices"][0]["message"]
         print(colored("Function Call:" + str(message.get("function_call")), 'blue'))
         if message.get("function_call"):
             function_name = message["function_call"]["name"]
             args = json.loads(message["function_call"]["arguments"])
-            if function_name in ["search_codebase","bing_search_save","scrape_website"]:
+            if function_name in ["search_codebase","bing_search_save","scrape_website","load_instructions_from_file"]:
                 print(colored("Function Name: " + function_name, 'green'))
                 print(colored("Function Args: " + str(args), 'green'))
                 # Execute Function?
@@ -117,5 +138,48 @@ def run_conversation():
                     r_text = chunk["choices"][0]["delta"]["content"]
                     responses += r_text
                     print(r_text, end='', flush=True)
+
+            assistant_message = responses
+        else:
+            # Call OpenAI API to get response
+            third_response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo-16k-0613",
+                messages=conversation,
+                stream=True,
+            )
+            responses = ''
+
+            # Process each chunk
+            for chunk in third_response:
+                if "role" in chunk["choices"][0]["delta"]:
+                    continue
+                elif "content" in chunk["choices"][0]["delta"]:
+                    r_text = chunk["choices"][0]["delta"]["content"]
+                    responses += r_text
+                    print(r_text, end='', flush=True)
+
+            assistant_message = responses
+
+        # Add the response to the conversation
+        conversation.append(
+            {"role": "system", "content": assistant_message}
+        )
+
+        # Prompt the user for the next input
+        user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
+        
+        # Add the response to the conversation
+        conversation.append(
+            {"role": "user", "content": user_input}
+        )
+
+        # Critique and Revise Instructions
+        if user_input.lower() in ["critique", "revise"]:
+            instructions = critique_and_revise_instructions(instructions)
+            save_instructions_to_file(instructions, "fenix_instructions.txt")
+            conversation = [{"role": "system", "content": instructions}, {
+                "role": "user", "content": user_input}]
+            user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
+
 
 run_conversation()
