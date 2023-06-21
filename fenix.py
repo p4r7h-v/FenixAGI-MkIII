@@ -19,16 +19,28 @@ approved_functions = [
     "load_instructions_from_file",
 ]
 
+def stringify_conversation(conversation):
+    return ' '.join([str(msg) for msg in conversation])
+
 # Step 1, send model the user query and what functions it has access to
 def run_conversation():
     instructions = load_instructions_from_file("fenix_instructions.txt")
     print(colored(f"Launching Fenix", "yellow"))
-    user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
+    user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.\n", 'yellow'))
     conversation = [{"role": "system", "content": instructions}, {
             "role": "user", "content": user_input}]
     while True:
+        # Exit Instructions
         if user_input.lower() in ["exit", "quit"]:
             break
+        
+        # Critique and Revise Instructions
+        if user_input.lower() in ["critique", "revise"]:
+            instructions = critique_and_revise_instructions(conversation)
+            save_instructions_to_file("fenix_instructions.txt", instructions)
+            user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.\n", 'yellow'))
+        
+        print("Conversation length (tokens): " + str(count_tokens(stringify_conversation(conversation))))
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo-16k-0613",
             messages=conversation,
@@ -110,6 +122,9 @@ def run_conversation():
                 user_input = input(colored("Execute Function? (y/n): ", 'yellow'))
                 if user_input.lower() in ["y", "yes"]:
                     function_response = eval(function_name)(**args)
+                elif user_input.lower() in ["n", "no"]:
+                    print(colored("Not executing function", 'red'))
+                    continue
                 else:
                     continue
             else:
@@ -142,6 +157,7 @@ def run_conversation():
             assistant_message = responses
         else:
             # Call OpenAI API to get response
+            #print("Conversation so far: " + str(conversation))
             third_response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo-16k-0613",
                 messages=conversation,
@@ -166,20 +182,12 @@ def run_conversation():
         )
 
         # Prompt the user for the next input
-        user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
+        user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.\n", 'yellow'))
         
         # Add the response to the conversation
         conversation.append(
             {"role": "user", "content": user_input}
         )
-
-        # Critique and Revise Instructions
-        if user_input.lower() in ["critique", "revise"]:
-            instructions = critique_and_revise_instructions(instructions)
-            save_instructions_to_file(instructions, "fenix_instructions.txt")
-            conversation = [{"role": "system", "content": instructions}, {
-                "role": "user", "content": user_input}]
-            user_input = input(colored("\nFenix: Enter a query or type 'exit' to quit.", 'yellow'))
 
 
 run_conversation()

@@ -16,6 +16,40 @@ def save_instructions_to_file(file_path, instructions):
     with open(file_path, 'w') as file:
         file.write(instructions)
         
+def critique_and_revise_instructions(conversation_history):
+    chat_log = '\n'.join(
+        [f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation_history])
+
+    meta_prompt = f"""The Assistant has just had the following interactions with a User. Please critique the Assistant's performance and revise the Instructions based on the interactions.
+
+    ####
+
+    {chat_log}
+
+    ####
+
+    First, critique the Assistant's performance: What could have been done better? 
+    Then, revise the Instructions to improve the Assistant's responses in the future. 
+    The new Instructions should help the Assistant satisfy the user's request in fewer interactions. 
+    Remember, the Assistant will only see the new Instructions, not the previous interactions.
+
+    Start your critique with "Critique: ..." and your revised instructions with "Instructions: ...".
+    """
+
+    meta_response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo-16k-0613",
+        messages=[{"role": "user", "content": meta_prompt}]
+
+    )
+    meta_text = meta_response['choices'][0]['message']['content']
+    print(colored("Meta Response: " + meta_text, "yellow"))
+    new_instructions = meta_text.split("Instructions: ")[1].strip()
+    
+    print(colored(
+        f'\nNew Instructions: {new_instructions}\n' + '#' * 80 + '\n', 'magenta'))
+
+    return new_instructions
+
 def interactive_chat(user_task, instructions_file_path):
     instructions = load_instructions_from_file(instructions_file_path)
     print(colored(f"Opening Task: {user_task}", "yellow"))
@@ -67,40 +101,6 @@ def interactive_chat(user_task, instructions_file_path):
 
         conversation.append({"role": "user", "content": user_feedback.strip()})
 
-def critique_and_revise_instructions(conversation_history):
-    chat_log = '\n'.join(
-        [f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation_history])
-
-    meta_prompt = f"""The Assistant has just had the following interactions with a User. Please critique the Assistant's performance and revise the Instructions based on the interactions.
-
-    ####
-
-    {chat_log}
-
-    ####
-
-    First, critique the Assistant's performance: What could have been done better? 
-    Then, revise the Instructions to improve the Assistant's responses in the future. 
-    The new Instructions should help the Assistant satisfy the user's request in fewer interactions. 
-    Remember, the Assistant will only see the new Instructions, not the previous interactions.
-
-    Start your critique with "Critique: ..." and your revised instructions with "Instructions: ...".
-    """
-
-    meta_response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo-16k-0613",
-        messages=[{"role": "user", "content": meta_prompt}]
-
-    )
-    meta_text = meta_response['choices'][0]['message']['content']
-
-    new_instructions = meta_text.split("Instructions: ")[1].strip()
-    
-    print(colored(
-        f'\nNew Instructions: {new_instructions}\n' + '#' * 80 + '\n', 'magenta'))
-
-    return new_instructions
-
 if __name__ == '__main__':
     instructions_file_path = "metaPrompter/instructions.txt"
     while True:  # create an outer loop for multiple tasks
@@ -111,3 +111,4 @@ if __name__ == '__main__':
             break
         interactive_chat(user_task, instructions_file_path)
     print(colored('Thanks for participating!', 'green'))
+

@@ -24,7 +24,6 @@ def scrape_website(url):
 if __name__ == "__main__":
     # Scrape the website
     data = scrape_website(
-        url="https://en.wikipedia.org/wiki/Python_(programming_language)",
-        target_tag="p",
+        url="https://a16z.com/2023/06/20/emerging-architectures-for-llm-applications",
     )
     print(data)
