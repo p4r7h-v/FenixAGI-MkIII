@@ -2,6 +2,7 @@ import os
 import openai
 from termcolor import colored
 from token_counter import count_tokens
+import json
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -14,16 +15,19 @@ def load_instructions_from_file(file_path):
 
 def save_instructions_to_file(file_path, instructions):
     with open(file_path, 'w') as file:
+        print(colored(f"Saving Instructions to {file_path}", "yellow"))
         file.write(instructions)
-        
-def critique_and_revise_instructions(conversation_history):
+
+def critique_and_revise_instructions(conversation_history, approved_functions):
     chat_log = '\n'.join(
         [f"{msg['role'].capitalize()}: {msg['content']}" for msg in conversation_history])
 
     meta_prompt = f"""The Assistant has just had the following interactions with a User. Please critique the Assistant's performance and revise the Instructions based on the interactions.
 
     ####
-
+    Approved Functions (the Assistant can use these functions):
+    {approved_functions}
+    Chat Log:
     {chat_log}
 
     ####
@@ -41,8 +45,11 @@ def critique_and_revise_instructions(conversation_history):
         messages=[{"role": "user", "content": meta_prompt}]
 
     )
+    print(colored("Meta Prompt: " + meta_prompt, "cyan"))
+    print("Token count is:", count_tokens(meta_prompt))
     meta_text = meta_response['choices'][0]['message']['content']
-    print(colored("Meta Response: " + meta_text, "yellow"))
+    count_tokens(meta_text)
+    print(colored("Meta Critique: " + meta_text.split("Critique: ")[1].split("Instructions: ")[0].strip(),"yellow"))
     new_instructions = meta_text.split("Instructions: ")[1].strip()
     
     print(colored(
@@ -50,7 +57,7 @@ def critique_and_revise_instructions(conversation_history):
 
     return new_instructions
 
-def interactive_chat(user_task, instructions_file_path):
+def interactive_chat(user_task, instructions_file_path, approved_functions):
     instructions = load_instructions_from_file(instructions_file_path)
     print(colored(f"Opening Task: {user_task}", "yellow"))
 
@@ -58,7 +65,7 @@ def interactive_chat(user_task, instructions_file_path):
             "role": "user", "content": user_task}]
     while True:
         response = openai.ChatCompletion.create(
-            model="gpt-4-0613",
+            model="gpt-3.5-turbo-16k-0613",
             messages=conversation,
             stream=True,
         )
@@ -90,7 +97,7 @@ def interactive_chat(user_task, instructions_file_path):
             if line.lower() == 'done':
                 break
             elif line.lower() == '~':
-                instructions = critique_and_revise_instructions(conversation)
+                instructions = critique_and_revise_instructions(conversation, approved_functions)
                 save_instructions_to_file(instructions_file_path, instructions)
                 print(colored('Meta Instructions saved.', 'green'))
                 return
