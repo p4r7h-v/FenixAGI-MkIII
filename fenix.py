@@ -225,7 +225,7 @@ def run_conversation():
                             "properties": {
                                 "filename": {
                                     "type": "string",
-                                    "description": "he filename to save the state to. This should always be 'fenix_state.json'",
+                                    "description": "The filename to save the state to. This should always be 'fenix_state.json'",
                                 }
                             },
                         },
