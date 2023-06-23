@@ -4,10 +4,11 @@ import os
 import pandas as pd
 from token_counter import count_tokens
 from termcolor import colored
+from functions import *
+from function_descriptions import function_descriptions
 import codeSearch
 from codeSearch import search_codebase
 from bingSearch import bing_search_save
-from basicScraper import scrape_website
 from metaPrompter.metaPrompter import critique_and_revise_instructions
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -17,6 +18,11 @@ approved_functions = [
     "bing_search_save",
     "scrape_website",
     "save_fenix",
+    "read_from_file",
+    "write_to_file",
+    "create_directory",
+    "delete_file",\
+    "ask_user_for_additional_information",
 ]
 
 COLORS = {
@@ -39,6 +45,8 @@ class FenixState:
         self.mode = mode
         self.autosave = autosave
         self.approved_functions = approved_functions
+
+
 
 
 def save_fenix(filename="fenix_state.json"):
@@ -229,67 +237,7 @@ def run_conversation():
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo-16k-0613",
                 messages=conversation,
-                functions=[
-                    {
-                        "name": "search_codebase",
-                        "description": "Search the codebase dataframe of python functions for the function with the most similar results",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "code_query": {
-                                    "type": "string",
-                                    "description": "The code_query to search for",
-                                },
-                                "n": {
-                                    "type": "integer",
-                                    "description": "The number of results to return",
-                                },
-                            },
-                            "required": ["code_query", "n"],
-                        },
-                    },
-                    {
-                        "name": "bing_search_save",
-                        "description": "Search bing and save the results to a csv",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "query": {
-                                    "type": "string",
-                                    "description": "The query to search for",
-                                }
-                            },
-                            "required": ["query"],
-                        }
-                    },
-                    {
-                        "name": "scrape_website",
-                        "description": "Scrape or read a website and save the results to a txt file",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "url": {
-                                    "type": "string",
-                                    "description": "The url to scrape or read",
-                                }
-                            },
-                            "required": ["url"],
-                        }
-                    },
-                    {
-                        "name": "save_fenix",
-                        "description": "Save the current state of Fenix",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "filename": {
-                                    "type": "string",
-                                    "description": "",
-                                }
-                            },
-                        },
-                    }
-                ],
+                functions=function_descriptions,
                 function_call="auto",
             )
 
