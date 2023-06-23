@@ -12,13 +12,11 @@ from metaPrompter.metaPrompter import critique_and_revise_instructions
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-
 approved_functions = [
     "search_codebase",
     "bing_search_save",
     "scrape_website",
-    "save_state",
-    "load_state",
+    "save_fenix",
 ]
 
 COLORS = {
@@ -33,42 +31,44 @@ COLORS = {
 
 
 class FenixState:
-    def __init__(self, conversation=[], instructions="", function_calls=[], display_response=True, mode="manual", approved_functions=[], autosave=False):
+    def __init__(self, conversation=[], instructions="", function_calls=[], display_response=False, mode="manual", approved_functions=approved_functions, autosave=False):
         self.conversation = conversation
         self.instructions = instructions
         self.function_calls = function_calls
         self.display_response = display_response
         self.mode = mode
-        self.autosave = False
+        self.autosave = autosave
         self.approved_functions = approved_functions
 
 
-fenix_state = FenixState(display_response=True, mode="manual")
-
-
-def save_state():
+def save_fenix(filename="fenix_state.json"):
     global fenix_state  # Access the global instance
     with open("fenix_state.json", 'w') as f:
-        print("Saving state...")
         json.dump(fenix_state.__dict__, f)
-        return "State saved."
+        return "Fenix State Saved."
 
 
-def load_state(filename):
-    global fenix_state
-    if os.path.exists(filename):  # Check if the file exists
-        with open(filename, 'r') as f:
-            data = json.load(f)
-            if data:
+def rez_fenix(filename="fenix_state.json"):
+    try:
+        with open('fenix_state.json', 'r') as f:
+            if f.read():
+                # Move the read cursor back to the start of the file
+                f.seek(0)
+                data = json.load(f)
                 fenix_state = FenixState(**data)  # Load data if there is any
-                return fenix_state
             else:
-                fenix_state = FenixState()  # Return a new state if the file is empty
-                return fenix_state
-    else:
-        # Return a new state if the file doesn't exist
-        fenix_state = FenixState()
-        return fenix_state
+                print("The file is empty.")
+                fenix_state = FenixState()  # Create a new state
+    except FileNotFoundError:
+        fenix_state = FenixState()  # Create a new state if no data
+    return fenix_state
+
+
+def derez_fenix(filename="fenix_state.json"):
+    # Delete the fenix_state.json file
+    if os.path.exists("fenix_state.json"):
+        os.remove("fenix_state.json")
+        return "Fenix State Derezzed."
 
 
 def stringify_conversation(conversation):
@@ -83,90 +83,149 @@ def tell_user(message, color='blue'):
     print(colored(message, color))
 
 
-def tell_and_ask_user(message, question, tell_color='blue', ask_color='yellow'):
-    tell_user(message, tell_color)
-    return ask_user(question, ask_color)
-
-
 def run_conversation():
     global fenix_state
-    fenix_state = load_state("fenix_state.json")
-    conversation = fenix_state.conversation
-    instructions = fenix_state.instructions
-    function_calls = fenix_state.function_calls
-    display_response = fenix_state.display_response
-    autosave = fenix_state.autosave
+    # Check if the state file exists
+    if os.path.exists("fenix_state.json"):
+        fenix_state = rez_fenix()
+        conversation = fenix_state.conversation
+        conversation.append(
+            {"role": "system", "content": "Fenix State Rezzed."})
+    else:
+        fenix_state = FenixState(display_response=True, mode="manual",
+                                 autosave=False, approved_functions=approved_functions)
+        conversation = fenix_state.conversation
+        conversation.append(
+            {"role": "system", "content": "Fenix State Created."})
 
-    tell_user("Launching Fenix", COLORS['launch'])
-    immutable_instructions = "Fenix is a helpful assistant that can help you complete tasks. Fenix can search the codebase for functions, scrape websites, and search the web. Fenix can also learn from your feedback and improve over time."
-    tell_user(immutable_instructions, COLORS['launch'])
+
+    fenix_state.instructions = "Fenix is a helpful assistant that can help you complete tasks. Fenix can search the codebase for functions, scrape websites, and search the web. Fenix can also learn from your feedback and improve over time."
+    tell_user(fenix_state.instructions, COLORS['launch'])
     tell_user("Type 'help' for more information.", COLORS['launch'])
     conversation.append(
-        {"role": "system", "content": immutable_instructions + instructions})
+        {"role": "system", "content": fenix_state.instructions})
     while True:
         user_input = ask_user("> ", COLORS['query'])
-        conversation.append({"role": "user", "content": user_input})
-
         if user_input.lower() in ["exit", "quit"]:
+            tell_user("Exiting Fenix.", COLORS['important'])
+            conversation.append(
+                {"role": "system", "content": "Exiting Fenix."})
             if fenix_state.autosave:
-                save_state()
+                save_fenix()
+                conversation.append(
+                    {"role": "system", "content": "State saved."})
             break
 
-        if user_input.lower() in ["~"]:
-            instructions = critique_and_revise_instructions(conversation,
-                                                            approved_functions)
+        elif user_input.lower() in ["~"]:
+            # Update the meta instructions
+            user_input = "Update the meta instructions."
+            conversation.append({"role": "user", "content": user_input})
+            fenix_state.instructions = critique_and_revise_instructions(conversation,
+                                                                        approved_functions)
+            conversation.append(
+                {"role": "system", "content": "Meta instructions updated."})
             if fenix_state.autosave:
-                save_state()
+                save_fenix()
+                conversation.append(
+                    {"role": "system", "content": "State saved."})
             continue
 
         elif user_input.lower() == "1":
-            # Toggle mode
+            # Toggle automatic function calling mode
+            user_input = "Toggle automatic function calling mode."
+            conversation.append({"role": "user", "content": user_input})
             if (fenix_state.mode == "manual"):
                 fenix_state.mode = "auto"
-                tell_user("Fenix is now in auto mode.", COLORS['important'])
+                tell_user("Fenix is now in automatic mode.",
+                          COLORS['important'])
+                conversation.append(
+                    {"role": "system", "content": "Fenix is now in automatic mode."})
                 tell_user(
                     "Fenix will now execute approved functions automatically.", COLORS['important'])
+                conversation.append(
+                    {"role": "system", "content": "Fenix will now execute approved functions automatically."})
             elif (fenix_state.mode == "auto"):
                 fenix_state.mode = "manual"
                 tell_user("Fenix is now in manual mode.", COLORS['important'])
+                conversation.append(
+                    {"role": "system", "content": "Fenix is now in manual mode."})
                 tell_user(
                     "Fenix will now ask for approval before executing a function.", COLORS['important'])
+                conversation.append(
+                    {"role": "system", "content": "Fenix will now ask for approval before executing a function."})
         elif user_input == "2":
+            # Toggle display response
+            user_input = "Toggle display response."
+            conversation.append({"role": "user", "content": user_input})
             fenix_state.display_response = not fenix_state.display_response
             tell_user(
-                f"Display response is now set to {fenix_state.display_response}.", COLORS['important'])
+                f"Display Function Response is now set to {fenix_state.display_response}.", COLORS['important'])
 
-        elif user_input.lower() == "0":
+            conversation.append(
+                {"role": "system", "content": f"Display Function Response is now set to {fenix_state.display_response}."})
+
+        elif user_input.lower() == "3":
             # Toggle autosave
+            user_input = "Toggle autosave."
+            conversation.append({"role": "user", "content": user_input})
             if (fenix_state.autosave == True):
                 fenix_state.autosave = False
                 tell_user("Autosave is now off.", COLORS['important'])
+                conversation.append(
+                    {"role": "system", "content": "Autosave is now off."})
 
             elif (fenix_state.autosave == False):
                 fenix_state.autosave = True
                 tell_user("Autosave is now on.", COLORS['important'])
+                conversation.append(
+                    {"role": "system", "content": "Autosave is now on."})
 
+        elif user_input.lower() == "0":
+            # Derez Fenix
+            user_input = "Derez Fenix."
+            conversation.clear()  # Clear the conversation list
+            fenix_state.conversation.clear()  # Clear the conversation in FenixState
+            fenix_state.instructions = ""  # Clear the instructions
+            conversation.append({"role": "user", "content": user_input})
+            tell_user("Derezzing Fenix.", COLORS['important'])
+            conversation.append(
+                {"role": "system", "content": "Derezzing Fenix."})
+            derez_fenix()
+            fenix_state = FenixState(display_response=False, mode="manual", autosave=False,
+                                     approved_functions=approved_functions)
+            tell_user("Conversation history and meta instructions reset.", COLORS['important'])
+            conversation = fenix_state.conversation
+            conversation.append(
+                {"role": "system", "content": "New Fenix State Created."})
 
         elif user_input.lower() == "help":
-            tell_user(("Function Calling Mode: "+fenix_state.mode), COLORS['important'])
-            print("Display response: " + str(display_response))
-            print("Autosave: " + str(fenix_state.autosave))
-            print("Instructions: " + fenix_state.instructions)
-            print("Approved functions: " + str(fenix_state.approved_functions))
-            tell_user(
-                "Fenix can search the codebase for functions, scrape websites, and search the web. Fenix can also learn from your feedback and improve over time.", COLORS['launch'])
-            tell_user(
-                "\n'1' to toggle mode.\n - If Fenix is in manual mode, Fenix will ask you for approval before executing a function.\n - If Fenix is in auto mode, Fenix will execute approved functions automatically.", COLORS['important'])
-            tell_user(
-                "\n'2' to toggle display response. Fenix will display the response from the function call.", COLORS['launch'])
-            tell_user(
-                "\n'0' to toggle auto-save. Fenix will periodically save the conversation history to a json file.", COLORS['launch'])
-            tell_user(
-                "\n'~' for reflection and revision of instructions. Fenix will analyze the conversation and learn from your feedback.", COLORS['launch'])
-            tell_user(
-                "\n'exit' to quit. If conversation history is enabled, Fenix will save the conversation history to a json file.", COLORS['launch'])
-            continue
+            tell_user("\nHere are the available commands for Fenix: ",
+                      COLORS['important'])
+            conversation.append(
+                {"role": "system", "content": "Here are the available commands for Fenix: "})
+
+            help_text = "\n[1]: Toggle function calling mode. 'manual' mode: Fenix asks for approval before executing a function. 'auto' mode: Fenix executes approved functions automatically. " \
+                        "\n[2]: Toggle display response. If enabled, Fenix displays the response from the function call. " \
+                        "\n[3]: Toggle auto-save. If enabled, Fenix periodically saves the conversation history to a json file. " \
+                        "\n[0]: Derez Fenix. This wipes conversation history and meta prompt." \
+                        "\n[~]: Reflection and revision of instructions. Fenix analyzes the conversation and learns from your feedback. " \
+                        "\n['exit' or 'quit']: Quit the session. If conversation history is enabled, Fenix saves the conversation history to a json file."
+
+            tell_user(help_text, COLORS['launch'])
+            conversation.append({"role": "system", "content": help_text})
+
+            settings_text = "Current Settings: " \
+                            "\nFunction Calling Mode: "+fenix_state.mode + \
+                            "\nDisplay response: " + str(fenix_state.display_response) + \
+                            "\nAutosave: " + str(fenix_state.autosave) + \
+                            "\nInstructions: " + fenix_state.instructions + \
+                            "\nApproved functions: " + \
+                str(fenix_state.approved_functions)
+
+            tell_user(settings_text, COLORS['launch'])
+
         else:
+            conversation.append({"role": "user", "content": user_input})
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo-16k-0613",
                 messages=conversation,
@@ -218,32 +277,18 @@ def run_conversation():
                         }
                     },
                     {
-                        "name": "save_state",
+                        "name": "save_fenix",
                         "description": "Save the current state of Fenix",
                         "parameters": {
                             "type": "object",
                             "properties": {
                                 "filename": {
                                     "type": "string",
-                                    "description": "The filename to save the state to. This should always be 'fenix_state.json'",
+                                    "description": "",
                                 }
                             },
                         },
-                    },
-                    {
-                        "name": "load_state",
-                        "description": "Load a saved state of Fenix",
-                        "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "filename": {
-                                        "type": "string",
-                                        "description": "The filename to load the state from",
-                                    }
-                                },
-                            "required": ["filename"],
-                        }
-                    },
+                    }
                 ],
                 function_call="auto",
             )
@@ -256,7 +301,8 @@ def run_conversation():
                 args = json.loads(message["function_call"]["arguments"])
                 current_function_call = (function_name, args)
                 if function_name in approved_functions:
-                    tell_user("Function Calling Mode: " + str(fenix_state.mode), COLORS['important'])
+                    tell_user("Function Calling Mode: " +
+                              str(fenix_state.mode), COLORS['important'])
                     if fenix_state.mode == "manual":
                         user_input = ask_user(
                             "Do you want to run the function? (y/n)", COLORS['query'])
@@ -265,13 +311,14 @@ def run_conversation():
                             if fenix_state.display_response:
                                 tell_user(
                                     f"Function Response: {function_response}", COLORS['response'])
-                            
+
                         elif user_input.lower() in ["n", "no", "exit", "quit"]:
                             tell_user("Not executing function",
                                       COLORS['important'])
                             assistant_message = "Function execution skipped by user."
                             conversation.append(
                                 {"role": "assistant", "content": assistant_message})
+                            function_response = None
                         else:
                             tell_user(
                                 "Unrecognized input. Default action is not to execute the function.", COLORS['important'])
@@ -281,32 +328,33 @@ def run_conversation():
                     elif fenix_state.mode == "auto":
                         function_response = eval(function_name)(**args)
 
-                    second_response = openai.ChatCompletion.create(
-                        model="gpt-3.5-turbo-16k-0613",
-                        messages=conversation + [
-                            {"role": "user", "content": user_input},
-                            {
-                                "role": "function",
-                                "name": function_name,
-                                "content": str(function_response),
-                            },
-                        ],
-                        stream=True,
-                    )
+                    if function_response is not None:
+                        second_response = openai.ChatCompletion.create(
+                            model="gpt-3.5-turbo-16k-0613",
+                            messages=conversation + [
+                                {"role": "user", "content": user_input},
+                                {
+                                    "role": "function",
+                                    "name": function_name,
+                                    "content": str(function_response),
+                                },
+                            ],
+                            stream=True,
+                        )
 
-                    responses = ''
+                        responses = ''
 
-                    # Process each chunk
-                    for chunk in second_response:
-                        if "role" in chunk["choices"][0]["delta"]:
-                            continue
-                        elif "content" in chunk["choices"][0]["delta"]:
-                            r_text = chunk["choices"][0]["delta"]["content"]
-                            responses += r_text
-                            print(r_text, end='', flush=True)
-                    assistant_message = responses
-                    conversation.append(
-                        {"role": "assistant", "content": assistant_message})
+                        # Process each chunk
+                        for chunk in second_response:
+                            if "role" in chunk["choices"][0]["delta"]:
+                                continue
+                            elif "content" in chunk["choices"][0]["delta"]:
+                                r_text = chunk["choices"][0]["delta"]["content"]
+                                responses += r_text
+                                print(r_text, end='', flush=True)
+                        assistant_message = responses
+                        conversation.append(
+                            {"role": "assistant", "content": assistant_message})
 
                 else:
                     tell_user(

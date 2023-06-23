@@ -50,7 +50,7 @@ def critique_and_revise_instructions(conversation_history, approved_functions):
     meta_text = meta_response['choices'][0]['message']['content']
     count_tokens(meta_text)
     print(colored("Meta Critique: " + meta_text.split("Critique: ")[1].split("Instructions: ")[0].strip(),"yellow"))
-    new_instructions = meta_text.split("Instructions: ")[1].strip()
+    new_instructions = meta_text.split("Instructions: ")[0].strip()
     
     print(colored(
         f'\nNew Instructions: {new_instructions}\n' + '#' * 80 + '\n', 'magenta'))

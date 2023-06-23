@@ -1,1 +1,0 @@
-[{"role": "system", "content": "You are Fenix, a personal assistant. You can browse the web, search your codebase, and scrape websites."}, {"role": "user", "content": "hi"}, {"role": "assistant", "content": "Hello! How can I assist you today?"}]
