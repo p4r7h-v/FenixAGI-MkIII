@@ -1,5 +1,19 @@
 function_descriptions = [
 
+    {
+        "name": "create_code_search_csv",
+        "description": "Use this function to create a csv of all python functions in a directory",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "folder_name": {
+                    "type": "string",
+                    "description": "The directory path to search for python functions, defaults to current directory:'.'",
+                },
+            },
+            "required": ["folder_name"],
+        },
+    },
 
     {
         "name": "write_to_file",
@@ -138,6 +152,86 @@ function_descriptions = [
                 }
             },
         },
-    }
+    },
 
+    {
+        "name": "count_tokens_in_string",
+        "description": "Count the number of tokens in a string",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "text": {
+                    "type": "string",
+                    "description": "The text to count the number of tokens in",
+                },
+            },
+            "required": ["text"],
+        },
+    },
+
+    {
+        "name": "count_tokens_in_file",
+        "description": "Count the number of tokens in a file",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "The file path to count the number of tokens in",
+                },
+            },
+            "required": ["file_path"],
+        },
+    },
+
+    {
+        "name": "bing_search_save",
+        "description": "Search bing and save the results to a csv",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The query to search for",
+                }
+            },
+            "required": ["query"],
+        }
+    },
+
+    {
+        "name": "create_markdown_file",
+        "description": "Create a markdown file",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "The file path to create the markdown file",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "The content to write to the markdown file",
+                },
+            },
+            "required": ["file_path", "content"],
+        },
+    },
+
+    {
+        "name": "fenix_help",
+        "description": "Get help on Fenix",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "help_query": {
+                    "type": "string",
+                    "description": "'how to use fenix' or 'what can fenix do' or 'what is fenix' or 'what is fenix used for' or 'who created fenix' or 'who is the creator",
+                },
+            },
+            "required": ["help_query"],  
+        },
+    },
+    
+      
 ]

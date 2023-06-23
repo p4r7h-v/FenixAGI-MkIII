@@ -1,7 +1,7 @@
 import os
 import openai
 from termcolor import colored
-from token_counter import count_tokens
+from functions import *
 import json
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -46,9 +46,9 @@ def critique_and_revise_instructions(conversation_history, approved_functions):
 
     )
     print(colored("Meta Prompt: " + meta_prompt, "cyan"))
-    print("Token count is:", count_tokens(meta_prompt))
+    print("Token count is:", count_tokens_in_string(meta_prompt))
     meta_text = meta_response['choices'][0]['message']['content']
-    count_tokens(meta_text)
+    count_tokens_in_string(meta_text)
     print(colored("Meta Critique: " + meta_text.split("Critique: ")[1].split("Instructions: ")[0].strip(),"yellow"))
     new_instructions = meta_text.split("Instructions: ")[0].strip()
     
@@ -82,7 +82,7 @@ def interactive_chat(user_task, instructions_file_path, approved_functions):
                 print(r_text, end='', flush=True)
 
         assistant_message = responses
-        print("Token count is:", count_tokens(assistant_message))
+        print("Token count is:", count_tokens_in_string(assistant_message))
 
         conversation.append(
             {"role": "assistant", "content": assistant_message})
