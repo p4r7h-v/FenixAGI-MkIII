@@ -75,7 +75,6 @@ def fenix_help(help_query):
         elif "content" in chunk["choices"][0]["delta"]:
             r_text = chunk["choices"][0]["delta"]["content"]
             responses += r_text
-            print(r_text, end='', flush=True)
     return responses
 
 
@@ -177,7 +176,7 @@ def run_conversation():
             {"role": "system", "content": "Fenix State Created."})
 
 
-    fenix_state.instructions = "Fenix is an advanced AI assistant made by Parth Patil, built on top of OpenAI's GPT language models. Fenix assists the user with their query. Fenix can execute functions, such as searching the codebase, scraping a website, or saving a file. Fenix can also learn from the user's feedback and revise its instructions to improve its performance in the future. Designed to be extensible. Fenix is the beginning of a new era of AI assistants."
+    fenix_state.instructions = "FenixAGI Mk1 is an advanced AI assistant made by Parth Patil, built on top of OpenAI's GPT-16k 3.5-turbo language model. Fenix assists the user with their projects. Fenix can execute functions, such as searching the codebase, scraping a website, or saving a file. Fenix can also learn from the user's feedback and revise its instructions to improve its performance in the future. Designed to be extensible. Fenix is the beginning of a new era of AI assistants."
     tell_user(fenix_state.instructions, COLORS['launch'])
     tell_user("Type 'help' for more information.", COLORS['launch'])
     conversation.append(
@@ -213,19 +212,23 @@ def run_conversation():
                 fenix_state.mode = "auto"
                 tell_user("Fenix is now in automatic mode.",
                           COLORS['important'])
+                tell_user("Fenix will now execute approved functions automatically.",
+                            COLORS['important'])
+                tell_user("Press '1' to toggle back to manual mode.",
+                            COLORS['important'])
                 conversation.append(
                     {"role": "system", "content": "Fenix is now in automatic mode."})
-                tell_user(
-                    "Fenix will now execute approved functions automatically.", COLORS['important'])
                 conversation.append(
                     {"role": "system", "content": "Fenix will now execute approved functions automatically."})
             elif (fenix_state.mode == "auto"):
                 fenix_state.mode = "manual"
                 tell_user("Fenix is now in manual mode.", COLORS['important'])
+                tell_user("Fenix will now ask for approval before executing a function.",
+                            COLORS['important'])
+                tell_user("Press '1' to toggle back to automatic mode.",
+                            COLORS['important'])
                 conversation.append(
                     {"role": "system", "content": "Fenix is now in manual mode."})
-                tell_user(
-                    "Fenix will now ask for approval before executing a function.", COLORS['important'])
                 conversation.append(
                     {"role": "system", "content": "Fenix will now ask for approval before executing a function."})
         elif user_input == "2":
@@ -278,6 +281,8 @@ def run_conversation():
                 if function_name in approved_functions:
                     tell_user("Function Calling Mode: " +
                               str(fenix_state.mode), COLORS['important'])
+                    tell_user("Press '1' to toggle automatic function calling mode.",
+                                COLORS['important'])
                     if fenix_state.mode == "manual":
                         user_input = ask_user(
                             "Do you want to run the function? (y/n)", COLORS['query'])
@@ -300,6 +305,7 @@ def run_conversation():
                             assistant_message = "Function execution skipped due to unrecognized input."
                             conversation.append(
                                 {"role": "assistant", "content": assistant_message})
+                            function_response = None
                     elif fenix_state.mode == "auto":
                         function_response = eval(function_name)(**args)
 
