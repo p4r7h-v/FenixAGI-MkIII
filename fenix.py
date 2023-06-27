@@ -25,10 +25,10 @@ approved_functions = [
   "bing_search_save",
   "scrape_website",
   "save_fenix",
-  "read_from_file",
-  "write_to_file",
-  "create_directory",
+  "read_file",
+  "write_file",
   "delete_file",
+  "create_directory",
   "ask_user_for_additional_information",
   "create_code_search_csv",
   "count_tokens_in_string",
@@ -317,9 +317,9 @@ def run_conversation():
         tell_user(f"Function Call: {message.get('function_call')}",
                   COLORS['function_call'])
         function_name = message["function_call"]["name"]
-        args = json.loads(message["function_call"]["arguments"])
-        current_function_call = (function_name, args)
         if function_name in approved_functions:
+          args = json.loads(message["function_call"]["arguments"])
+          current_function_call = (function_name, args)
           tell_user("Function Calling Mode: " + str(fenix_state.mode),
                     COLORS['important'])
           tell_user("Press '1' to toggle automatic function calling mode.",
@@ -419,6 +419,5 @@ def run_conversation():
 
     print("\nConversation length (tokens): " +
           str(count_tokens_in_string(stringify_conversation(conversation))))
-
 
 run_conversation()

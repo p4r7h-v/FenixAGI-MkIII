@@ -16,14 +16,14 @@ function_descriptions = [
     },
 
     {
-        "name": "write_to_file",
-        "description": "Use this function to write code to appropiate full file path",
-        "parameters": {
+        "name" : "write_file",
+        "description" : "writes the provided content to the provided file path",
+        "parameters" : {
             "type": "object",
             "properties": {
                 "file_path": {
                     "type": "string",
-                    "description": "The full file path to write the provided content to",
+                    "description": "The full file path to write the provided content to. Use this only once per file",
                 },
                 "content": {
                     "type": "string",
@@ -35,9 +35,9 @@ function_descriptions = [
     },
 
     {
-        "name": "read_from_file",
-        "description": "Use this function to read the content of files",
-        "parameters": {
+        "name" : "read_file",
+        "description" : "reads the content from the provided file path",
+        "parameters" : {
             "type": "object",
             "properties": {
                 "file_path": {
@@ -50,9 +50,9 @@ function_descriptions = [
     },
 
     {
-        "name": "delete_file",
-        "description": "Use this function to delete files",
-        "parameters": {
+        "name" : "delete_file",
+        "description" : "deletes the file at the provided file path",
+        "parameters" : {
             "type": "object",
             "properties": {
                 "file_path": {

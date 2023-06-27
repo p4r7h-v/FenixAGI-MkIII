@@ -14,6 +14,7 @@ import tiktoken
 import openai
     
 
+
 def create_markdown_file(file_path, content):
     with open(file_path, 'w') as file:
         file.write(content)
@@ -168,23 +169,28 @@ if __name__ == "__main__":
         url="https://a16z.com/2023/06/20/emerging-architectures-for-llm-applications",
     )
     print(data)
-def write_to_file(file_path, content):
+
+def write_file(file_path, content):
     print(colored(f"GPT Writing to file: {file_path}", "magenta"))
     try:
         with open(file_path, 'w', encoding="utf-8") as f:
-            f.write(content)
+                        f.write(content)
         print(colored(f"Successfully wrote to file: {file_path}", "green"))
         return f"Successfully wrote to file: {file_path}"
     except Exception as e:
         print(colored(f"Error writing to file: {e}", "red"))
         return f"Error writing to file: {e}"
     
-def read_from_file(file_path):
-    print(colored(f"GPT Reading from file: {file_path}", "magenta"))
+def read_file(file_path):
+    # print(colored(f"GPT Reading from file: {file_path}", "magenta"))
     try:
         with open(file_path, 'r', encoding="utf-8", errors="ignore") as f:
-            content = f.read()
-        print(colored(f"Successfully read from file: {file_path}", "green"))
+            # if file is an image then skip it
+            if file_path.endswith(".png") or file_path.endswith(".jpg") or file_path.endswith(".jpeg"):
+                return 
+            else:
+                content = f.read()
+        # print(colored(f"Successfully read from file: {file_path}", "green"))
         return f"Here are the contents of {file_path}:\n{content}"
     except Exception as e:
         print(colored(f"Error reading from file: {e}", "red"))
