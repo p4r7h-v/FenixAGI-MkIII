@@ -24,4 +24,3 @@ def launch_selenium_browser(browser_name):
 # Example usage
 browser = launch_selenium_browser("chrome")
 # Now you can use `browser` to perform actions, such as navigating to a web page or interacting with elements on the page
-```

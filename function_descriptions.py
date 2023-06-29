@@ -232,6 +232,21 @@ function_descriptions = [
             "required": ["help_query"],  
         },
     },
+
+    {
+        "name": "convert_markdown_to_html",
+        "description": "Convert a markdown file to html",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "The file path to the markdown file",
+                },
+            },
+            "required": ["markdown_text"],  
+        },
+    },
     
       
 ]

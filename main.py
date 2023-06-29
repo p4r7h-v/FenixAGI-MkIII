@@ -17,8 +17,17 @@ import pandas as pd
 from termcolor import colored
 from functions import *
 from function_descriptions import function_descriptions
+from typing import List
+from fastapi import FastAPI
+import uvicorn
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
 
 approved_functions = [
   "search_codebase",
@@ -421,4 +430,5 @@ def run_conversation():
     print("\nConversation length (tokens): " +
           str(count_tokens_in_string(stringify_conversation(conversation))))
 
-run_conversation()
+if __name__ == "__main__":
+    uvicorn.run("main:app", port=8000, log_level="info")

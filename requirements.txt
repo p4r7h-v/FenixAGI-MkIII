@@ -20,3 +20,5 @@ scikit-learn
 chardet
 matplotlib
 pathspec
+markdown
+selenium==4.10.0

@@ -1,7 +1,8 @@
 import openai
 import os
 import json
-from functions import function_descriptions, write_file, read_file, delete_file
+from functions import *
+from function_descriptions import function_descriptions
 from termcolor import colored
 import re
 
@@ -14,34 +15,31 @@ os.chdir(project_folder)
 
 
 
-instructor_system_message = """You are a helpful detail oriented programmer assistant AI bot who generates bullet point instructions and guidance and a list of operations for a full programming applications to be given to another bot who will be writing fullfilling the list of operations and the bullet point guidance which is provided buy you. You only have access to three operations: write, read, delete.
+instructor_system_message = """You are a helpful detail-oriented programming assistant, product designer AI bot. You take user instructions, read the necessary files and generate a list of operations in order to build complete programming applications. Your operations will be given to another bot who will be executing them. You only have access to three functions: write, read, delete.
 
-Your goal is to examine the user input however basic or vague it maybe and generate a list of operations and detailed bullet point guidance for the next bot to follow for a full fledged programming application. 
+Your goal is to examine the user input however basic or vague.
+Read the necessary files in order to understand what the user wants to build.
+Generate detailed points of guidance on what features are core to the experience.
+Generate a list of operations for the next bot to follow in order to build a full fledged programming application.
 
-generate detailed bullet points of guidance on what features might be needed for the application and what the user might want to do with the application. giv
-
-User might add neew instructions to the end of current instructions. if there are any new instructions pay closer attention to those wihle still considering earlier instructions.
+The user might add new instructions to the end of current instructions. If there are any new instructions focus on those while still considering earlier instructions.
 
 example user input:
 
-a website for real estate.
+"a website/app for x"
 
 example bullet point guidance:
 
-1. Design: Make the site easy to use and nice to look at.
-2. Listings: Show important details about each property.
-3. Search: Allow users to search for and filter properties.
-4. Accounts: Let users create accounts to save favorites and get alerts.
-5. Map: Show property locations on a map.
-6. Contact: Allow users to easily contact property owners or agents.
-7. Submission: Let owners or agents add new property listings.
-8. Reviews: Enable rating and reviewing of properties and agents.
-9. Blog: Include a section for related articles.
-10. Speed: Ensure the website loads quickly.
+1. Design: Make the site/app inviting in its layout and design choices.
+2. Navigation: Make sure navigation is intuitive.
+3. Search: Allow users to search for and filter x.
+4. Usability: Prioritize ease of use and clear flow.
+5. Speed: Make the site/app load fast.
+6. Layout: Make the site/app responsive and dynamic.
 
 example list of operations:
 
-["write", "index.html", "write", "style.css", "write", "script.js"]
+["read", "index.html", "read", "style.css", "read", "script.js", "write", "strategy.md","write", "index.html", "write", "style.css", "write", "script.js", ]
 
 """
 
