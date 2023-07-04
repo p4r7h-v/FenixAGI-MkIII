@@ -14,10 +14,22 @@ import tiktoken
 import openai
 import markdown
 
-
 def create_markdown_file(file_path, content):
+
+
+    folder_path = "."+os.path.dirname(file_path)
+
+    if not os.path.exists(folder_path):
+        try:
+            os.makedirs(folder_path)
+        except OSError as e:
+            return f"Error creating directory: {str(e)}"
+    
     with open(file_path, 'w') as file:
         file.write(content)
+    
+    return f"Markdown file created at: {file_path}"
+
 
 def convert_markdown_to_html(file_path):
     # Extract the file name from the file path
@@ -210,6 +222,8 @@ def read_file(file_path):
         print(colored(f"Error reading from file: {e}", "red"))
         return f"Error reading from file: {e}"
     
+
+
 def delete_file(file_path):
     print(colored(f"GPT Deleting file: {file_path}", "magenta"))
     try:
