@@ -1,6 +1,0 @@
-/* Step 3: Import the base Tailwind CSS file */
-@import 'tailwindcss/base';
-
-/* Step 4: Import additional necessary styles from Tailwind CSS */
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';

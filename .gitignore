@@ -117,3 +117,5 @@ ipython_config.py
 .pdm.toml
 
 # PEP 
+.vercel
+.env*.local

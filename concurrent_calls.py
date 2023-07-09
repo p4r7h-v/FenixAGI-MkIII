@@ -54,7 +54,7 @@ async def python_function_generator_async(purpose):
 async def make_async_calls_full():
     tasks = []
     for purpose in purposes:
-        
+
         print("async calls started""")
         tasks.append(loop.create_task(python_function_generator_async(purpose)))
     results = await asyncio.gather(*tasks)

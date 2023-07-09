@@ -145,5 +145,5 @@ def search_codebase(code_query, n):
     return json.dumps(results)
 
 if __name__ == "__main__":
-    df = create_code_search_csv('.')
+    df = create_code_search_csv('functions.py')
     interactive_code_search(df,3)
