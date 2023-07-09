@@ -1,5 +1,5 @@
 '''
-Introducing FenixAGI Mk1, an advanced AI assistant designed to revolutionize project management. Powered by Open A.I.'s GPT-16k 3.5-turbo language model, Fenix is a versatile companion that assists users in various tasks. From codebase searches to web scraping and file management, Fenix can complete tasks efficiently. Fenix's extensibility ensures adaptability to evolving project needs. With its ability to learn from user feedback, Fenix continually improves its performance, making it an invaluable asset in streamlining project workflows. Experience the future of AI assistance with FenixAGI Mk1.
+Introducing FenixAGI, an advanced AI assistant designed to revolutionize project management. Powered by Open A.I.'s GPT-16k 3.5-turbo language model, Fenix is a versatile companion that assists users in various tasks. From codebase searches to web scraping and file management, Fenix can complete tasks efficiently. Fenix's extensibility ensures adaptability to evolving project needs. With its ability to learn from user feedback, Fenix continually improves its performance, making it an invaluable asset in streamlining project workflows. Experience the future of AI assistance with FenixAGI.
 
 To use the functions in the functions.py file, a person needs the following API keys:
 
@@ -21,6 +21,8 @@ import pyttsx3
 import tenacity
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+
+
 approved_functions = [
     "search_codebase",
     "bing_search_save",
@@ -37,14 +39,21 @@ approved_functions = [
     "create_markdown_file",
     "convert_markdown_to_html",
     "fenix_help",
+    "move_file",
+    "list_files_in_directory",
+    "suggest_function_chain",
+    "visualize_data_3d",
 ]
+
+base_instructions = "FenixAGI MKII is an AI assistant built by Parth Patil. Fenix is built on top of the Open A.I. GPT language models. Fenix assists the user with their projects. Fenix can execute the following functions:" + str(approved_functions) + \
+        "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extensible an personalized, Fenix is a powerful tool for any developer, researcher, or student."
 
 COLORS = {
     'launch': 'cyan',
     'function_call': 'cyan',
     'function_info': 'green',
     'important': 'red',
-    'query': 'red',
+    'query': 'green',
     'response': 'blue',
     # Add more as necessary...
 }
@@ -55,7 +64,6 @@ class FenixState:
     def __init__(self,
                  conversation=[],
                  instructions="",
-                 function_calls=[],
                  display_response=False,
                  mode="manual",
                  approved_functions=approved_functions,
@@ -63,7 +71,6 @@ class FenixState:
                  ):
         self.conversation = conversation
         self.instructions = instructions
-        self.function_calls = function_calls
         self.display_response = display_response
         self.mode = mode
         self.approved_functions = approved_functions
@@ -97,7 +104,7 @@ def fenix_help(help_query):
     return help_text
 
 
-def critique_and_revise_instructions(conversation_history, approved_functions):
+def critique_and_revise_instructions(instructions, conversation_history, approved_functions):
     chat_log = '\n'.join([
         f"{msg['role'].capitalize()}: {msg['content']}"
         for msg in conversation_history
@@ -118,7 +125,7 @@ def critique_and_revise_instructions(conversation_history, approved_functions):
     The new Instructions should help the Assistant satisfy the user's request in fewer interactions. 
     Remember, the Assistant will only see the new Instructions, not the previous interactions.
 
-    Start your critique with "Critique: ..." and your revised instructions with "Instructions: ...".
+    Start your critique with "Critique: ..." and your revised instructions with "New Instructions: ...".
 
     """
 
@@ -138,12 +145,13 @@ def critique_and_revise_instructions(conversation_history, approved_functions):
         colored(
             "Meta Critique: " +
             meta_text.split("Critique: ")[1].split(
-                "Instructions: ")[0].strip(),
+                "New Instructions: ")[0].strip(),
             "yellow"))
-    new_instructions = meta_text.split("Instructions: ")[1].strip()
-    print(
-        colored(f'\nNew Instructions: {new_instructions}\n' + '#' * 80 + '\n',
-                'magenta'))
+    try:
+        new_instructions = meta_text.split("New Instructions: ")[1].strip()
+    except IndexError:
+        print("No new instructions found in AI output.")
+        return ""
 
     return new_instructions
 
@@ -195,9 +203,10 @@ def tell_user(message, color='blue'):
 def voice_message(message):
     # use the openai api to generate a response
 
-    prompt = "You are the audio accompanyment to a text response. Don't introduce yourself unless the message looks like an introduction. Assume the user will see the text, so you shouldn't recite it. If the text is a function call, just describe it at a high level. If the text has links don't read them out loud, just describe at a high level. Your response is short and to the point. Here is the text: " + message + "Present the text to the user in 2 concise sentences, in first person as 'Fenix': "
+    prompt = "You are Fenix, an AI assistant's voice layer that interprets given text and function responses in first person. Don't introduce yourself unless asked to do so. If the text is a function response, describe it extremely briefly. Your response is short and to the point. Here is the text: " + \
+        message + "Be as brief as possible presenting the information.': "
 
-    # tenacity
+    # tenacity will retry the request if it fails
     response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
                                             messages=[
                                                 {
@@ -215,6 +224,40 @@ def voice_message(message):
     engine.say(voice_summary)
     engine.runAndWait()
 
+@tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
+def get_base_streaming_response(model,messages):
+    # use the openai api to generate a response
+    response = openai.ChatCompletion.create(
+                    model=model,
+                    messages=messages,
+                    stream=True,
+    )
+    responses = ''
+    # Process each chunk
+    for chunk in response:
+        if "role" in chunk["choices"][0]["delta"]:
+            continue
+        elif "content" in chunk["choices"][0]["delta"]:
+            r_text = chunk["choices"][0]["delta"]["content"]
+            responses += r_text
+            print(r_text, end='', flush=True)
+    assistant_message = responses
+    messages.append({
+        "role": "assistant",
+        "content": assistant_message
+    })
+    return messages, assistant_message
+
+@tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
+def get_function_calling_response(model,messages,functions,function_call):
+    response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            functions=functions,
+            function_call=function_call,
+    )
+    return response
+    
 
 def run_conversation():
     global fenix_state
@@ -226,14 +269,14 @@ def run_conversation():
             {"role": "system", "content": "Fenix State Rezzed."})
     else:
         fenix_state = FenixState(display_response=True,
-                                 mode="manual",
+                                 mode="auto",
                                  approved_functions=approved_functions)
         conversation = fenix_state.conversation
         conversation.append(
             {"role": "system", "content": "Fenix State Created."})
 
-    fenix_state.instructions = "FenixAGI Mark 2 is an AI assistant built on top of the Open A.I. GPT language models. Fenix assists the user with their projects. Fenix can execute functions, such as searching the codebase, browsing the web, reading a website, or saving a file. Fenix can also learn from the user's feedback and revise its instructions to improve its performance in the future. Designed to be extensible and customizable in the future, Fenix is a powerful tool for any developer, researcher, or student."
-    tell_user(fenix_state.instructions, COLORS['launch'])
+    fenix_state.instructions = base_instructions
+    tell_user("Agent Fenix is Online.", COLORS['launch'])
     conversation.append(
         {"role": "system", "content": fenix_state.instructions})
     while True:
@@ -250,8 +293,8 @@ def run_conversation():
             # Update the meta instructions
             user_input = "Update the meta instructions."
             conversation.append({"role": "user", "content": user_input})
-            fenix_state.instructions = critique_and_revise_instructions(
-                conversation, approved_functions)
+            fenix_state.instructions = critique_and_revise_instructions(fenix_state.instructions,
+                                                                        conversation, approved_functions)
             conversation.append({
                 "role": "system",
                 "content": "Meta instructions updated."
@@ -266,8 +309,6 @@ def run_conversation():
             if (fenix_state.mode == "manual"):
                 fenix_state.mode = "auto"
                 tell_user("Fenix will now execute approved functions automatically.",
-                          COLORS['important'])
-                tell_user("Press '1' to toggle back to manual mode.",
                           COLORS['important'])
                 conversation.append({
                     "role": "system",
@@ -284,8 +325,6 @@ def run_conversation():
                 tell_user(
                     "Fenix will now ask for approval before executing a function.",
                     COLORS['important'])
-                tell_user("Press '1' to toggle back to automatic mode.",
-                          COLORS['important'])
                 conversation.append({
                     "role": "system",
                     "content": "Fenix is now in manual mode."
@@ -323,20 +362,25 @@ def run_conversation():
 
         elif user_input.lower() == "0":
             # update meta instructions and derez fenix
-            temp_instructions = critique_and_revise_instructions(
-                conversation, approved_functions)
+            temp_instructions = critique_and_revise_instructions(fenix_state.instructions,
+                                                                 conversation, approved_functions)
             # Derez Fenix
             user_input = "Derez Fenix."
             conversation.clear()  # Clear the conversation list
             fenix_state.conversation.clear()  # Clear the conversation in FenixState
             conversation.append({"role": "user", "content": user_input})
-            tell_user("Derezzing Fenix.", COLORS['important'])
-            conversation.append(
-                {"role": "system", "content": "Derezzing Fenix."})
+
             derez_fenix()
-            fenix_state = FenixState(display_response=False, instructions=temp_instructions,
-                                     mode="manual",
-                                     approved_functions=approved_functions)
+            tell_user("Fenix State Derezzed.", COLORS['important'])
+            conversation.append({
+                "role": "system",
+                "content": "Fenix State Derezzed."
+            })
+
+            fenix_state = FenixState(display_response=False,                        
+                instructions=base_instructions+" "+ temp_instructions,
+                mode="auto",
+                approved_functions=approved_functions)
             tell_user("Meta Instructions updated and conversation history reset.",
                       COLORS['important'])
             conversation = fenix_state.conversation
@@ -348,7 +392,7 @@ def run_conversation():
 
         else:
             conversation.append({"role": "user", "content": user_input})
-            response = openai.ChatCompletion.create(
+            response = get_function_calling_response(
                 model="gpt-3.5-turbo-16k-0613",
                 messages=conversation,
                 functions=function_descriptions,
@@ -363,9 +407,6 @@ def run_conversation():
                 if function_name in approved_functions:
                     args = json.loads(message["function_call"]["arguments"])
                     current_function_call = (function_name, args)
-                    if fenix_state.display_response:
-                        tell_user("Press '1' to toggle automatic function calling mode.",
-                                  COLORS['important'])
                     if fenix_state.mode == "manual":
                         user_input = ask_user("Do you want to run the function? (y/n)",
                                               COLORS['query'])
@@ -398,21 +439,40 @@ def run_conversation():
                         function_response = eval(function_name)(**args)
 
                     if function_response is not None:
-                        second_response = openai.ChatCompletion.create(
-                            model="gpt-3.5-turbo-16k-0613",
-                            messages=conversation + [
-                                {
-                                  "role": "user",
-                                  "content": user_input
-                                },
-                                {
-                                    "role": "function",
-                                    "name": function_name,
-                                    "content": str(function_response),
-                                },
-                            ],
-                            stream=True,
-                        )
+                        conversation.append({
+                            "role": "function",
+                            "name": function_name,
+                            "content": str(function_response),
+                        })
+                        print(function_response[:100])
+                        print("\nConversation length (tokens): " +
+                              str(count_tokens_in_string(stringify_conversation(conversation))))
+                        save_fenix()
+                        # if the response returns a max_tokens error, drop the first message and try again
+                        while True:
+                            try:
+                                second_response = get_base_streaming_response(
+                                    model="gpt-3.5-turbo-16k-0613",
+                                    messages=conversation + [
+                                        {
+                                          "role": "user",
+                                          "content": user_input
+                                        },
+                                        {
+                                            "role": "function",
+                                            "name": function_name,
+                                            "content": str(function_response),
+                                        },
+                                    ],
+                                )
+                                break
+                            except Exception as e:
+                                print(
+                                    "Error: Max tokens exceeded. Dropping first message and trying again.")
+                                # Print the first message that will be dropped
+                                print("Dropping: "+conversation[0])
+                                conversation.pop(0)
+                                continue
 
                         responses = ''
 
@@ -442,29 +502,20 @@ def run_conversation():
                     voice_message(assistant_message)
 
             else:
-                third_response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo-16k-0613",
-                    messages=conversation,
-                    stream=True,
+
+                conversation,assistant_message = get_base_streaming_response(
+                    model="gpt-3.5-turbo-16k",
+                    messages=conversation + [
+                        {
+                            "role": "system",
+                            "content": "Here are the functions Fenix has access to:" + str(approved_functions) + "If the user doesn't have a question, predict 3 possible follow-ups from the user, and return them as a list of options.",
+                        }],
                 )
-                responses = ''
-                # Process each chunk
-                for chunk in third_response:
-                    if "role" in chunk["choices"][0]["delta"]:
-                        continue
-                    elif "content" in chunk["choices"][0]["delta"]:
-                        r_text = chunk["choices"][0]["delta"]["content"]
-                        responses += r_text
-                        print(r_text, end='', flush=True)
-                assistant_message = responses
-                conversation.append({
-                    "role": "assistant",
-                    "content": assistant_message
-                })
                 voice_message(assistant_message)
+ 
 
         print("\nConversation length (tokens): " +
               str(count_tokens_in_string(stringify_conversation(conversation))))
-
+        save_fenix()
 
 run_conversation()
