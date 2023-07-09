@@ -18,6 +18,7 @@ from termcolor import colored
 from functions import *
 from function_descriptions import function_descriptions
 import pyttsx3
+import tenacityimport pyttsx3
 import tenacity
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -49,32 +50,31 @@ base_instructions = "FenixAGI MKII is an AI assistant built by Parth Patil. Feni
         "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extensible an personalized, Fenix is a powerful tool for any developer, researcher, or student."
 
 COLORS = {
-    'launch': 'cyan',
-    'function_call': 'cyan',
-    'function_info': 'green',
-    'important': 'red',
-    'query': 'green',
-    'response': 'blue',
-    # Add more as necessary...
+      'launch': 'cyan',
+      'function_call': 'cyan',
+      'function_info': 'green',
+      'important': 'red',
+      'query': 'green',
+      'response': 'blue',
+      # Add more as necessary...
 }
 
 
 class FenixState:
 
-    def __init__(self,
-                 conversation=[],
-                 instructions="",
-                 display_response=False,
-                 mode="manual",
-                 approved_functions=approved_functions,
-                 voice_enabled=True
-                 ):
-        self.conversation = conversation
-        self.instructions = instructions
-        self.display_response = display_response
-        self.mode = mode
-        self.approved_functions = approved_functions
-        self.voice_enabled = voice_enabled
+  def __init__(self,
+               conversation=[],
+               instructions="",
+               function_calls=[],
+               display_response=False,
+               mode="manual",
+               approved_functions=approved_functions):
+    self.conversation = conversation
+    self.instructions = instructions
+    self.function_calls = function_calls
+    self.display_response = display_response
+    self.mode = mode
+    self.approved_functions = approved_functions
 
 
 def fenix_help(help_query):
@@ -98,6 +98,10 @@ def fenix_help(help_query):
   Errors during the execution of a function are handled by returning an error message to the user and not executing the function. Unrecognized user inputs in response to a function call prompt are treated as 'no' responses.
   Future Development
   Currently, the conversation history used to generate responses is limited by the maximum context length of the GPT-3.5-turbo model. Future versions of the run_conversation() function may implement more sophisticated methods for managing long conversation histories.'''
+    help_text += "\n\nFenix is also capable of executing a wide range of functions, these don't have explicit keystrokes. Here are the available functions for Fenix: "
+    help_text += "\n".join(
+        [f"\n {function}" for i, function in enumerate(approved_functions)])
+    return help_text
     help_text += "\n\nFenix is also capable of executing a wide range of functions, these don't have explicit keystrokes. Here are the available functions for Fenix: "
     help_text += "\n".join(
         [f"\n {function}" for i, function in enumerate(approved_functions)])
@@ -257,7 +261,32 @@ def get_function_calling_response(model,messages,functions,function_call):
             function_call=function_call,
     )
     return response
-    
+
+
+@tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
+def voice_message(message):
+    # use the openai api to generate a response
+
+    prompt = "You are the audio accompanyment to a text response. Don't introduce yourself unless the message looks like an introduction. Assume the user will see the text, so you shouldn't recite it. If the text is a function call, just describe it at a high level. If the text has links don't read them out loud, just describe at a high level. Your response is short and to the point. Here is the text: " + message + "Present the text to the user in 2 concise sentences, in first person as 'Fenix': "
+
+    # tenacity
+    response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
+                                            messages=[
+                                                {
+                                                    "role": "system",
+                                                    "content": prompt,
+                                                }],
+                                            max_tokens=100,
+                                            temperature=1,
+                                            top_p=1.0,
+                                            )
+    voice_summary = response['choices'][0]['message']['content']
+
+    # use the pyttsx3 library to play back the response
+    engine = pyttsx3.init()
+    engine.say(voice_summary)
+    engine.runAndWait()
+
 
 def run_conversation():
     global fenix_state
@@ -517,5 +546,6 @@ def run_conversation():
         print("\nConversation length (tokens): " +
               str(count_tokens_in_string(stringify_conversation(conversation))))
         save_fenix()
+
 
 run_conversation()

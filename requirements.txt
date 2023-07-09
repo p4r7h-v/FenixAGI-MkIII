@@ -22,3 +22,5 @@ matplotlib
 pathspec
 markdown
 selenium==4.10.0
+tenacity
+keyboard

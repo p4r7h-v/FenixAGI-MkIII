@@ -16,9 +16,9 @@ function_descriptions = [
     },
 
     {
-        "name" : "write_file",
-        "description" : "writes the provided content to the provided file path",
-        "parameters" : {
+        "name": "write_file",
+        "description": "writes the provided content to the provided file path",
+        "parameters": {
             "type": "object",
             "properties": {
                 "file_path": {
@@ -35,9 +35,9 @@ function_descriptions = [
     },
 
     {
-        "name" : "read_file",
-        "description" : "reads the content from the provided file path",
-        "parameters" : {
+        "name": "read_file",
+        "description": "reads the content from the provided file path",
+        "parameters": {
             "type": "object",
             "properties": {
                 "file_path": {
@@ -50,9 +50,9 @@ function_descriptions = [
     },
 
     {
-        "name" : "delete_file",
-        "description" : "deletes the file at the provided file path",
-        "parameters" : {
+        "name": "delete_file",
+        "description": "deletes the file at the provided file path",
+        "parameters": {
             "type": "object",
             "properties": {
                 "file_path": {
@@ -114,16 +114,21 @@ function_descriptions = [
     },
     {
         "name": "bing_search_save",
-        "description": "Search bing and save the results to a csv",
+        "description": "Search bing and save the results to a markdown file",
         "parameters": {
             "type": "object",
             "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "The file path to save the results to",
+                },
                 "query": {
                     "type": "string",
                     "description": "The query to search for",
-                }
+                },
+
             },
-            "required": ["query"],
+            "required": ["file_path", "query"],
         }
     },
     {
@@ -184,20 +189,6 @@ function_descriptions = [
         },
     },
 
-    {
-        "name": "bing_search_save",
-        "description": "Search bing and save the results to a csv",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The query to search for",
-                }
-            },
-            "required": ["query"],
-        }
-    },
 
     {
         "name": "create_markdown_file",
@@ -229,7 +220,7 @@ function_descriptions = [
                     "description": "'how to use fenix' or 'what can fenix do' or 'what is fenix' or 'what is fenix used for' or 'who created fenix' or 'who is the creator",
                 },
             },
-            "required": ["help_query"],  
+            "required": ["help_query"],
         },
     },
 
@@ -244,9 +235,76 @@ function_descriptions = [
                     "description": "The file path to the markdown file",
                 },
             },
-            "required": ["markdown_text"],  
+            "required": ["file_path"],
         },
     },
-    
-      
+
+    {
+        "name": "move_file",
+        "description": "Move a file from one location to another",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source_path": {
+                    "type": "string",
+                    "description": "The original path of the file to be moved",
+                },
+                "destination_path": {
+                    "type": "string",
+                    "description": "The desired path where the file will be moved to",
+                },
+            },
+            "required": ["source_path", "destination_path"],
+        }
+    },
+
+    {
+        "name": "list_files_in_directory",
+        "description": "List all the files in a directory",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "directory_path": {
+                    "type": "string",
+                    "description": "The directory path to list the files from"
+                }
+            },
+            "required": ["directory_path"]
+        }
+    },
+
+    {
+        "name": "visualize_data_3d",
+        "description": "Given a dataframe, visualize the data in 3D",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "code_search_csv_path": {
+                    "type": "string",
+                    "description": "The file path of the CSV containing the code search results.",
+                }
+            },
+            "required": ["code_search_csv_path"]
+        }
+    },
+
+    {
+        "name": "suggest_function_chain",
+        "description": "Analyzes a given task and a string of available functions to generate a recommended sequence or chain of functions that can accomplish the task effectively.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "The task to accomplish",
+                },
+                "available_functions": {
+                    "type": "string",
+                    "description": "The available functions to use to accomplish the task",
+                },
+            },
+            "required": ["task", "available_functions"],
+        }
+    },
+
 ]
