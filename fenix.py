@@ -18,7 +18,6 @@ from termcolor import colored
 from functions import *
 from function_descriptions import function_descriptions
 import pyttsx3
-import tenacityimport pyttsx3
 import tenacity
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
