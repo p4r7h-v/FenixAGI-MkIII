@@ -298,12 +298,8 @@ function_descriptions = [
                     "type": "string",
                     "description": "The task to accomplish",
                 },
-                "available_functions": {
-                    "type": "string",
-                    "description": "The available functions to use to accomplish the task",
-                },
             },
-            "required": ["task", "available_functions"],
+            "required": ["task"],
         }
     },
 

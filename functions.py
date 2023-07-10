@@ -31,6 +31,14 @@ def list_files_in_directory(directory_path):
     return files
 
 def create_markdown_file(file_path, content):
+    # Extract directory from file_path
+    directory = os.path.dirname(file_path)
+    
+    # If directory doesn't exist, create it
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    
+    # Now you can safely write your file
     with open(file_path, 'w') as file:
         file.write(content)
 
@@ -54,7 +62,7 @@ def bing_search_save(file_path, query):
     base_url = "https://api.bing.microsoft.com/v7.0/search"
     headers = {"Ocp-Apim-Subscription-Key": subscription_key}
     params = {"q": query, "count": 50, "offset": 0}
-
+    file_path = "./web_searches/"+file_path
     response = requests.get(base_url, headers=headers, params=params)
     response.raise_for_status()
     search_results = response.json()
@@ -68,8 +76,12 @@ def bing_search_save(file_path, query):
             return f"Error creating directory: {str(e)}"
 
     with open(file_path, 'w', encoding='utf-8') as file:
-        for result in search_results["webPages"]["value"]:
-            file.write(f"- [{result['name']}]({result['url']})\n")
+        
+        if 'webPages' in search_results:
+            for result in search_results["webPages"]["value"]:
+                file.write(f"- [{result['name']}]({result['url']})\n")
+        else:
+            print("'webPages' not in search results")
     return f"Response saved to: {file_path}, {len(search_results['webPages']['value'])} results found. Content: {search_results['webPages']['value']}"
 
 
@@ -262,10 +274,15 @@ def scrape_website(url):
         return None
 
 
-def suggest_function_chain(task,available_functions):
+def suggest_function_chain(task):
     """Suggest a chain of functions to accomplish a task"""
-    # Define the functions to be used read from functions.py
-    functions = available_functions
+    # Read function_descptions.py and suggest a chain of functions
+    functions = []
+    with open('function_descriptions.py', 'r') as f:
+        for line in f:
+            if line.startswith('def'):
+                functions.append(line.split('(')[0].split(' ')[1])
+                
     # Generate messages including the task and available functions
     messages = [
         {"role": "system", "content": f'You interpret a given task and develop a chain of functions to accomplish it. The user will provide the task and the available functions.'},
@@ -319,6 +336,7 @@ def read_file(file_path):
     except Exception as e:
         print(colored(f"Error reading from file: {e}", "red"))
         return f"Error reading from file: {e}"
+
 def move_file(source_path, destination_path):
     try:
         os.rename(source_path, destination_path)

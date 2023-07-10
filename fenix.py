@@ -64,13 +64,11 @@ class FenixState:
   def __init__(self,
                conversation=[],
                instructions="",
-               function_calls=[],
                display_response=False,
-               mode="manual",
+               mode="auto",
                approved_functions=approved_functions):
     self.conversation = conversation
     self.instructions = instructions
-    self.function_calls = function_calls
     self.display_response = display_response
     self.mode = mode
     self.approved_functions = approved_functions
@@ -126,9 +124,8 @@ def critique_and_revise_instructions(instructions, conversation_history, approve
     First, critique the Assistant's performance: What could have been done better? 
     Then, revise the Instructions to improve the Assistant's responses in the future. 
     The new Instructions should help the Assistant satisfy the user's request in fewer interactions. 
-    Remember, the Assistant will only see the new Instructions, not the previous interactions.
 
-    Start your critique with "Critique: ..." and your revised instructions with "New Instructions: ...".
+    Start your critique with "Critique: ..." and your revised instructions for the assistant with "New Instructions:".
 
     """
 
@@ -148,10 +145,11 @@ def critique_and_revise_instructions(instructions, conversation_history, approve
         colored(
             "Meta Critique: " +
             meta_text.split("Critique: ")[1].split(
-                "New Instructions: ")[0].strip(),
+                "New Instructions:")[0].strip(),
             "yellow"))
     try:
-        new_instructions = meta_text.split("New Instructions: ")[1].strip()
+        new_instructions = meta_text.split("New Instructions:")[1].strip()
+        print(colored("New Instructions: " + new_instructions, "cyan"))
     except IndexError:
         print("No new instructions found in AI output.")
         return ""
@@ -229,12 +227,22 @@ def voice_message(message):
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
 def get_base_streaming_response(model,messages):
-    # use the openai api to generate a response
-    response = openai.ChatCompletion.create(
-                    model=model,
-                    messages=messages,
-                    stream=True,
-    )
+    # try to get a response from the model if it fails, drop the 3rd oldest message and try again
+    try:
+        # use the openai api to generate a response
+        response = openai.ChatCompletion.create(
+                        model=model,
+                        messages=messages,
+                        stream=True,
+        )
+    except Exception as e:
+        print(e)
+        messages.pop(2)
+        response = openai.ChatCompletion.create(
+                        model=model,
+                        messages=messages,
+                        stream=True,
+        )
     responses = ''
     # Process each chunk
     for chunk in response:
@@ -253,12 +261,24 @@ def get_base_streaming_response(model,messages):
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
 def get_function_calling_response(model,messages,functions,function_call):
-    response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            functions=functions,
-            function_call=function_call,
-    )
+    # try to get a response from the model if it fails, drop the 3rd oldest message and try again
+    try:
+        # use the openai api to generate a response
+        response = openai.ChatCompletion.create(
+                        model=model,
+                        messages=messages,
+                        functions=functions,
+                        function_call=function_call,
+        )
+    except Exception as e:
+        print(e)
+        messages.pop(2)
+        response = openai.ChatCompletion.create(
+                        model=model,
+                        messages=messages,
+                        functions=functions,
+                        function_call=function_call,
+        )
     return response
 
 
@@ -305,8 +325,6 @@ def run_conversation():
 
     fenix_state.instructions = base_instructions
     tell_user("Agent Fenix is Online.", COLORS['launch'])
-    conversation.append(
-        {"role": "system", "content": fenix_state.instructions})
     while True:
         user_input = ask_user("> ", COLORS['query'])
         if user_input.lower() in ["exit", "quit"]:
@@ -404,7 +422,11 @@ def run_conversation():
                 "role": "system",
                 "content": "Fenix State Derezzed."
             })
-
+            tell_user("Fenix State Rezzed.", COLORS['important'])
+            conversation.append({
+                "role": "system",
+                "content": "Fenix State Rezzed."
+            })
             fenix_state = FenixState(display_response=False,                        
                 instructions=base_instructions+" "+ temp_instructions,
                 mode="auto",
@@ -429,8 +451,7 @@ def run_conversation():
 
             message = response["choices"][0]["message"]
             if message.get("function_call"):
-                tell_user(f"Function Call: {message.get('function_call')}",
-                          COLORS['function_call'])
+                print(f"Function Call: {message.get('function_call')}")
                 function_name = message["function_call"]["name"]
                 if function_name in approved_functions:
                     args = json.loads(message["function_call"]["arguments"])
@@ -467,52 +488,39 @@ def run_conversation():
                         function_response = eval(function_name)(**args)
 
                     if function_response is not None:
-                        conversation.append({
+                        function_content = {
                             "role": "function",
                             "name": function_name,
                             "content": str(function_response),
-                        })
-                        print(function_response[:100])
+                        }
+
+                        conversation.append(function_content)
+                        
+                        # Print the first few characters of the response
+                        print("Function Response: " + str(function_response)[:100])
                         print("\nConversation length (tokens): " +
-                              str(count_tokens_in_string(stringify_conversation(conversation))))
-                        save_fenix()
-                        # if the response returns a max_tokens error, drop the first message and try again
-                        while True:
-                            try:
-                                second_response = get_base_streaming_response(
-                                    model="gpt-3.5-turbo-16k-0613",
-                                    messages=conversation + [
-                                        {
-                                          "role": "user",
-                                          "content": user_input
-                                        },
-                                        {
-                                            "role": "function",
-                                            "name": function_name,
-                                            "content": str(function_response),
-                                        },
-                                    ],
-                                )
-                                break
-                            except Exception as e:
-                                print(
-                                    "Error: Max tokens exceeded. Dropping first message and trying again.")
-                                # Print the first message that will be dropped
-                                print("Dropping: "+conversation[0])
-                                conversation.pop(0)
-                                continue
+                            str(count_tokens_in_string(stringify_conversation(conversation))))
+                        
+                        MAX_TOKENS = 15000
+                        
+                        if count_tokens_in_string(stringify_conversation(conversation)) > MAX_TOKENS:
+                            # Remove oldest messages until we have room for new ones
+                            while count_tokens_in_string(stringify_conversation(conversation)) + count_tokens_in_string(user_input) + count_tokens_in_string(str(function_response)) > MAX_TOKENS:
+                                print("Dropping: " + str(conversation[2]))
+                                removed_message = conversation.pop(2)
+                                print(f"Removing message due to token limit: {removed_message}")
 
-                        responses = ''
+                        conversation,assistant_message = get_base_streaming_response(
+                            model="gpt-3.5-turbo-16k-0613",
+                            messages=conversation + [
+                                {
+                                "role": "user",
+                                "content": user_input
+                                },
+                                function_content,
+                            ],
+                        )
 
-                        # Process each chunk
-                        for chunk in second_response:
-                            if "role" in chunk["choices"][0]["delta"]:
-                                continue
-                            elif "content" in chunk["choices"][0]["delta"]:
-                                r_text = chunk["choices"][0]["delta"]["content"]
-                                responses += r_text
-                                print(r_text, end='', flush=True)
-                        assistant_message = responses
                         conversation.append({
                             "role": "assistant",
                             "content": assistant_message

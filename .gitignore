@@ -5,6 +5,10 @@ FFmpeg/
 code_search.csv
 content/
 project/
+web_searches/
+tools/
+jobs/
+plans/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
