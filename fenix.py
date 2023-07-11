@@ -45,8 +45,8 @@ approved_functions = [
     "visualize_data_3d",
 ]
 
-base_instructions = "FenixAGI MKII is an AI assistant built by Parth Patil. Fenix is built on top of the Open A.I. GPT language models. Fenix assists the user with their projects. Fenix can execute the following functions:" + str(approved_functions) + \
-        "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extensible an personalized, Fenix is a powerful tool for any developer, researcher, or student."
+base_instructions = "FenixAGI MKII is an AI assistant built by Parth Patil, a virtual assistant built on top of the Open A.I. GPT language models. Fenix assists the user with their projects. Fenix can execute the following functions:" + str(approved_functions) + \
+        "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extensible and personalized, Fenix is a powerful tool for any developer, researcher, or student."
 
 COLORS = {
       'launch': 'cyan',
@@ -417,16 +417,7 @@ def run_conversation():
             conversation.append({"role": "user", "content": user_input})
 
             derez_fenix()
-            tell_user("Fenix State Derezzed.", COLORS['important'])
-            conversation.append({
-                "role": "system",
-                "content": "Fenix State Derezzed."
-            })
-            tell_user("Fenix State Rezzed.", COLORS['important'])
-            conversation.append({
-                "role": "system",
-                "content": "Fenix State Rezzed."
-            })
+
             fenix_state = FenixState(display_response=False,                        
                 instructions=base_instructions+" "+ temp_instructions,
                 mode="auto",
@@ -438,7 +429,7 @@ def run_conversation():
                 "role": "system",
                 "content": "New Fenix State Created."
             })
-            tell_user(fenix_state.instructions, COLORS['launch'])
+            tell_user(base_instructions, COLORS['launch'])
 
         else:
             conversation.append({"role": "user", "content": user_input})
@@ -451,7 +442,8 @@ def run_conversation():
 
             message = response["choices"][0]["message"]
             if message.get("function_call"):
-                print(f"Function Call: {message.get('function_call')}")
+                print(colored(("Function Call:"+ str(message.get('function_call'))
+                ), "cyan"))
                 function_name = message["function_call"]["name"]
                 if function_name in approved_functions:
                     args = json.loads(message["function_call"]["arguments"])
@@ -462,8 +454,7 @@ def run_conversation():
                         if user_input.lower() in ["y", "yes"]:
                             function_response = eval(function_name)(**args)
                             if fenix_state.display_response:
-                                tell_user(f"Function Response: {function_response}",
-                                          COLORS['response'])
+                                print(colored(("Function Response: "+function_response), "purple"))
 
                         elif user_input.lower() in ["n", "no", "exit", "quit"]:
                             tell_user(
@@ -495,20 +486,16 @@ def run_conversation():
                         }
 
                         conversation.append(function_content)
-                        
-                        # Print the first few characters of the response
-                        print("Function Response: " + str(function_response)[:100])
-                        print("\nConversation length (tokens): " +
-                            str(count_tokens_in_string(stringify_conversation(conversation))))
+                        #print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
                         
                         MAX_TOKENS = 15000
                         
                         if count_tokens_in_string(stringify_conversation(conversation)) > MAX_TOKENS:
                             # Remove oldest messages until we have room for new ones
                             while count_tokens_in_string(stringify_conversation(conversation)) + count_tokens_in_string(user_input) + count_tokens_in_string(str(function_response)) > MAX_TOKENS:
-                                print("Dropping: " + str(conversation[2]))
+                                #print("Dropping: " + str(conversation[2]))
                                 removed_message = conversation.pop(2)
-                                print(f"Removing message due to token limit: {removed_message}")
+                                #print(f"Removing message due to token limit: {removed_message}")
 
                         conversation,assistant_message = get_base_streaming_response(
                             model="gpt-3.5-turbo-16k-0613",
@@ -550,8 +537,7 @@ def run_conversation():
                 voice_message(assistant_message)
  
 
-        print("\nConversation length (tokens): " +
-              str(count_tokens_in_string(stringify_conversation(conversation))))
+        #print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
         save_fenix()
 
 

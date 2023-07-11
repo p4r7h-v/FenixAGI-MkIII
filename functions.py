@@ -30,17 +30,12 @@ def list_files_in_directory(directory_path):
             files.append(file)
     return files
 
+
 def create_markdown_file(file_path, content):
-    # Extract directory from file_path
-    directory = os.path.dirname(file_path)
-    
-    # If directory doesn't exist, create it
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    
     # Now you can safely write your file
     with open(file_path, 'w') as file:
         file.write(content)
+
 
 def convert_markdown_to_html(file_path):
     # Extract the file name from the file path
@@ -76,7 +71,7 @@ def bing_search_save(file_path, query):
             return f"Error creating directory: {str(e)}"
 
     with open(file_path, 'w', encoding='utf-8') as file:
-        
+
         if 'webPages' in search_results:
             for result in search_results["webPages"]["value"]:
                 file.write(f"- [{result['name']}]({result['url']})\n")
@@ -160,6 +155,8 @@ def get_functions(filepath):
             yield {"code": code, "function_name": function_name, "filepath": filepath}
 
 # Similarity search code
+
+
 def similarity_search(df, code_query, n=3, pprint=True, n_lines=7):
     embedding = get_embedding(code_query, engine='text-embedding-ada-002')
     df['similarities'] = df.code_embedding.apply(
@@ -196,22 +193,26 @@ def search_codebase(code_query, n):
             })
     return json.dumps(results)
 
+
 def visualize_data_3d(code_search_csv_path):
     print("Visualizing data in 3D...")
-    if not os.path.exists(code_search_csv_path): 
+    if not os.path.exists(code_search_csv_path):
         print("Code search csv file does not exist. Setting default path.")
         code_search_csv_path = "./code_search.csv"
     df = pd.read_csv(code_search_csv_path)
     print("Total number of functions:", len(df))
     print("Total number of unique files:", len(df['filepath'].unique()))
-    print("Total number of unique functions:", len(df['function_name'].unique()))
-    print("Total number of unique code embeddings:", len(df['code_embedding'].unique()))
+    print("Total number of unique functions:",
+          len(df['function_name'].unique()))
+    print("Total number of unique code embeddings:",
+          len(df['code_embedding'].unique()))
     embeddings = [ast.literal_eval(i) for i in df['code_embedding'].tolist()]
     embeddings_array = np.array(embeddings)
     function_names = df['function_name'].tolist()
     filepaths = df['filepath'].tolist()
 
-    tsne = TSNE(n_components=3, random_state=42, perplexity=len(embeddings_array)-1)
+    tsne = TSNE(n_components=3, random_state=42,
+                perplexity=len(embeddings_array)-1)
     embeddings_array = np.array(embeddings)
     reduced_embeddings = tsne.fit_transform(embeddings_array)
 
@@ -226,29 +227,31 @@ def visualize_data_3d(code_search_csv_path):
     plot_markers = []
     for idx, filepath in enumerate(unique_filepaths):
         temp_df = vis_df[vis_df['filepath'] == filepath]
-        color_idx = idx % num_colors # cycle through colors using modulo operator
+        color_idx = idx % num_colors  # cycle through colors using modulo operator
         marker = go.Scatter3d(x=temp_df['x'],
-                            y=temp_df['y'],
-                            z=temp_df['z'],
-                            mode='markers+text',
-                            text=temp_df['function_name'],
-                            name=filepath,
-                            textposition='top center',
-                            hovertext=temp_df['filepath'],
-                            hoverinfo='text',
-                            marker={'color': colors[color_idx], 'symbol': 'circle', 'size': 8})
+                              y=temp_df['y'],
+                              z=temp_df['z'],
+                              mode='markers+text',
+                              text=temp_df['function_name'],
+                              name=filepath,
+                              textposition='top center',
+                              hovertext=temp_df['filepath'],
+                              hoverinfo='text',
+                              marker={'color': colors[color_idx], 'symbol': 'circle', 'size': 8})
         plot_markers.append(marker)
 
     layout = go.Layout(title='Code Visualization',
-                       scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'),
+                       scene=dict(xaxis_title='X', yaxis_title='Y',
+                                  zaxis_title='Z'),
                        showlegend=False,
                        hovermode='closest',
                        margin={'t': 50, 'b': 50, 'l': 50, 'r': 50},
-                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title="Filepaths"),
+                       legend=dict(orientation="h", yanchor="bottom",
+                                   y=1.02, xanchor="right", x=1, title="Filepaths"),
                        template='plotly_dark')
 
     fig = go.Figure(data=plot_markers, layout=layout)
-   
+
     fig.show()
     return "The visualization is shown in a new tab."
 
@@ -274,29 +277,25 @@ def scrape_website(url):
         return None
 
 
-def suggest_function_chain(task):
+def suggest_function_chain(task, available_functions):
     """Suggest a chain of functions to accomplish a task"""
-    # Read function_descptions.py and suggest a chain of functions
-    functions = []
-    with open('function_descriptions.py', 'r') as f:
-        for line in f:
-            if line.startswith('def'):
-                functions.append(line.split('(')[0].split(' ')[1])
-                
+
     # Generate messages including the task and available functions
     messages = [
-        {"role": "system", "content": f'You interpret a given task and develop a chain of functions to accomplish it. The user will provide the task and the available functions.'},
-        {"role": "user", "content": 'User: Using only the available functions: ' + ', '.join(functions) + 'develop a chain of functions to accomplish the task: ' + task + '.'},
+        {"role": "system", "content": f'You are given a task and a list of available functions. Your task is to develop a chain of functions to accomplish the task. The task is: {task}.'},
+        {"role": "user", "content": 'User: Using only the available functions: ' +
+            available_functions + ', develop a chain of functions to accomplish the task.'},
         {"role": "assistant", "content": 'Assistant:'},
     ]
+
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo-16k",
         messages=messages,
         max_tokens=100,
         n=1,
         stop=None
     )
-
+    print(response.choices[0].message["content"])
     suggested_functions = response.choices[0].message["content"]
 
     return suggested_functions
@@ -336,6 +335,7 @@ def read_file(file_path):
     except Exception as e:
         print(colored(f"Error reading from file: {e}", "red"))
         return f"Error reading from file: {e}"
+
 
 def move_file(source_path, destination_path):
     try:

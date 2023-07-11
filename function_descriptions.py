@@ -298,8 +298,12 @@ function_descriptions = [
                     "type": "string",
                     "description": "The task to accomplish",
                 },
+                "available_functions": {
+                    "type": "string",
+                    "description": "Functions available to the agent in order to accomplish the task.",
+                },
             },
-            "required": ["task"],
+            "required": ["task", "available_functions"],
         }
     },
 

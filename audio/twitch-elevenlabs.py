@@ -125,7 +125,7 @@ all_voices = voices()
 # Find the 'Dip Sith' voice
 dip_sith_voice_id = next(
   (voice.voice_id for voice in all_voices
-   if voice.name == 'Dip Sith:  Trained with famous Dark Side Phrases'), None)
+   if voice.name == 'Parth TTS'), None)
 
 if __name__ == "__main__":
   bot = TwitchBot()
