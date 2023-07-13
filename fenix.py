@@ -22,6 +22,7 @@ import tenacity
 from elevenlabs import voices, generate, set_api_key
 import soundfile
 import simpleaudio as sa
+import re
 
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -228,6 +229,16 @@ def truncate_conversation(conversation,user_input="",function_response=""):
             # print(f"Removing message due to token limit: {removed_message}")
     return conversation
 
+def strip_string(input_string):
+    # Remove underscores and special characters except dashes
+    cleaned_string = re.sub(r'[\W_&&[^-]]', '', input_string)
+    
+    pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    
+    # Replace matches with an empty string
+    cleaned_string = re.sub(pattern, '', cleaned_string)
+
+    return cleaned_string.strip()
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
 def voice_message(message):
@@ -250,10 +261,11 @@ def voice_message(message):
                                             )
     voice_response = response['choices'][0]['message']['content']
 
-    #print(colored("Voice Summary: " + voice_response, "cyan"))
-
+    #print(colored("Voice Response: " + voice_response, "cyan"))
+    #print(colored("Voice Response Stripped: " + strip_string(voice_response), "red"))
+    stripped_voice_response = strip_string(voice_response)
     audio = generate(
-        text=voice_response,
+        text=stripped_voice_response,
         voice=voice_id,
         model="eleven_monolingual_v1"
     )
