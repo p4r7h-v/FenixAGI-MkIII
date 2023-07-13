@@ -9,6 +9,9 @@ web_searches/
 tools/
 jobs/
 plans/
+audio/
+video/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
