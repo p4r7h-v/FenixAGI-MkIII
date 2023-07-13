@@ -31,7 +31,10 @@ def list_files_in_directory(directory_path):
     return files
 
 
-def create_markdown_file(file_path, content):
+def create_markdown_file(file_name, content):
+    # if the file_path doesn't exist save to "content" folder
+    if not os.path.exists(file_name):
+        file_path = "./content/"+file_name
     # Now you can safely write your file
     with open(file_path, 'w') as file:
         file.write(content)
@@ -52,12 +55,12 @@ def convert_markdown_to_html(file_path):
         f.write(tempHtml)
 
 
-def bing_search_save(file_path, query):
+def bing_search_save(file_name, query):
     subscription_key = os.getenv("BING_SEARCH_KEY")
     base_url = "https://api.bing.microsoft.com/v7.0/search"
     headers = {"Ocp-Apim-Subscription-Key": subscription_key}
-    params = {"q": query, "count": 50, "offset": 0}
-    file_path = "./web_searches/"+file_path
+    params = {"q": query, "count": 50, "offset": 0, "freshness": "Month"}
+    file_path = "./web_searches/"+file_name
     response = requests.get(base_url, headers=headers, params=params)
     response.raise_for_status()
     search_results = response.json()

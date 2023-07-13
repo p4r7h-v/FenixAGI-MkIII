@@ -118,9 +118,9 @@ function_descriptions = [
         "parameters": {
             "type": "object",
             "properties": {
-                "file_path": {
+                "file_name": {
                     "type": "string",
-                    "description": "The file path to save the results to",
+                    "description": "The file name to save the results to. Do not include the folder path. Save it as a markdown file",
                 },
                 "query": {
                     "type": "string",
@@ -128,7 +128,7 @@ function_descriptions = [
                 },
 
             },
-            "required": ["file_path", "query"],
+            "required": ["file_name", "query"],
         }
     },
     {
@@ -196,16 +196,16 @@ function_descriptions = [
         "parameters": {
             "type": "object",
             "properties": {
-                "file_path": {
+                "file_name": {
                     "type": "string",
-                    "description": "The file path to create the markdown file",
+                    "description": "The name of the markdown file to create",
                 },
                 "content": {
                     "type": "string",
                     "description": "The content to write to the markdown file",
                 },
             },
-            "required": ["file_path", "content"],
+            "required": ["file_name", "content"],
         },
     },
 

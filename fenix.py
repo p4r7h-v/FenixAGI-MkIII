@@ -19,8 +19,13 @@ from functions import *
 from function_descriptions import function_descriptions
 import pyttsx3
 import tenacity
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from elevenlabs import voices, generate, set_api_key
+import soundfile
+import simpleaudio as sa
 
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+set_api_key(os.environ['xi-api-key'])
 
 
 approved_functions = [
@@ -45,33 +50,45 @@ approved_functions = [
     "visualize_data_3d",
 ]
 
-base_instructions = "FenixAGI MKII is an AI assistant built by Parth Patil, a virtual assistant built on top of the Open A.I. GPT language models. Fenix assists the user with their projects. Fenix can execute the following functions:" + str(approved_functions) + \
-        "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extensible and personalized, Fenix is a powerful tool for any developer, researcher, or student."
+base_instructions = "Fenix A.G.I. MarkII is an AI assistant built by a guy named Parth, a virtual assistant built on top of the Open A.I. GPT language models. Fenix's voice is a 2nd generation clone of Parth's voice... a clone of a clone of his voice. Fenix assists the user with their projects. Fenix can execute the following functions:" + str(approved_functions) + \
+    "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extensible and personalized, Fenix is a powerful tool for any developer, researcher, or student."
 
 COLORS = {
-      'launch': 'cyan',
-      'function_call': 'cyan',
-      'function_info': 'green',
-      'important': 'red',
-      'query': 'green',
-      'response': 'blue',
-      # Add more as necessary...
+    'launch': 'cyan',
+    'function_call': 'cyan',
+    'function_info': 'green',
+    'important': 'red',
+    'query': 'green',
+    'response': 'blue',
+    # Add more as necessary...
 }
+
+# Fetch all available voices
+all_voices = voices()
+voice_id = next(
+    (voice.voice_id for voice in all_voices
+     if voice.name == 'Parth TTS'), None)
 
 
 class FenixState:
 
-  def __init__(self,
-               conversation=[],
-               instructions="",
-               display_response=False,
-               mode="auto",
-               approved_functions=approved_functions):
-    self.conversation = conversation
-    self.instructions = instructions
-    self.display_response = display_response
-    self.mode = mode
-    self.approved_functions = approved_functions
+    def __init__(self,
+                 conversation=[],
+                 instructions="",
+                 display_response=False,
+                 mode="auto",
+                 approved_functions=approved_functions):
+        self.conversation = conversation
+        self.instructions = instructions
+        self.display_response = display_response
+        self.mode = mode
+        self.approved_functions = approved_functions
+
+
+def play_audio(file_path):
+    wave_obj = sa.WaveObject.from_wave_file(file_path)
+    play_obj = wave_obj.play()
+    play_obj.wait_done()
 
 
 def fenix_help(help_query):
@@ -199,49 +216,84 @@ def tell_user(message, color='blue'):
     print(colored(message, color))
     voice_message(message)
 
+def truncate_conversation(conversation,user_input="",function_response=""):
+    MAX_TOKENS = 15000
+
+    if count_tokens_in_string(stringify_conversation(conversation)) > MAX_TOKENS:
+        # Remove oldest messages until we have room for new ones
+        while count_tokens_in_string(stringify_conversation(conversation)) + count_tokens_in_string(user_input) + count_tokens_in_string(str(function_response)) > MAX_TOKENS:
+            # print("Dropping: " + str(conversation[2]))
+            removed_message = conversation.pop(2)
+            removed_message = conversation.pop(3)
+            # print(f"Removing message due to token limit: {removed_message}")
+    return conversation
+
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
 def voice_message(message):
     # use the openai api to generate a response
 
-    prompt = "You are Fenix, an AI assistant's voice layer that interprets given text and function responses in first person. Don't introduce yourself unless asked to do so. If the text is a function response, describe it extremely briefly. Your response is short and to the point. Here is the text: " + \
-        message + "Be as brief as possible presenting the information.': "
+    # prompt = "You are Fenix, an AI assistant's voice layer that interprets given text and function responses in first person. Don't introduce yourself unless asked to do so. If the text is a function response, describe it extremely briefly. Your response is short and to the point. Here is the text: " + \
+    #     message + "Be as brief as possible presenting the information.': "
 
-    # tenacity will retry the request if it fails
+    eleven_prompt = "You are Fenix A.G.I. MarkII's voice. Fenix' voice is a 2nd generation voice clone (clone of a voice clone of the creator, 'a guy named Parth')." + base_instructions + " If the text is a function response, describe it extremely briefly. Your response is short and to the point. You're brilliant, witty, and attentive. You can exclude links. Replace all links with plain text. If you see a list, just describe the list. Use dashes for pauses and ellipses for more of a hesitant pause. You always respond in first person as Fenix. Your response is short and to the point and around 3 sentences in length. Here is the text you will present: " + \
+        message
     response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
                                             messages=[
                                                 {
                                                     "role": "system",
-                                                    "content": prompt,
+                                                    "content": eleven_prompt,
                                                 }],
-                                            max_tokens=100,
+                                            max_tokens=500,
                                             temperature=1,
                                             top_p=1.0,
                                             )
-    voice_summary = response['choices'][0]['message']['content']
+    voice_response = response['choices'][0]['message']['content']
 
+    #print(colored("Voice Summary: " + voice_response, "cyan"))
+
+    audio = generate(
+        text=voice_response,
+        voice=voice_id,
+        model="eleven_monolingual_v1"
+    )
+
+    # Save audio to a file
+    file_path = 'audio/samples/audio.wav'
+    #print(file_path)
+
+    with open(file_path, "wb") as file:
+        file.write(audio)
+
+    # Read and rewrite the file with soundfile
+    data, samplerate = soundfile.read(file_path)
+    soundfile.write(file_path, data, samplerate)
+
+    # Play audio
+    play_audio(file_path)
     # use the pyttsx3 library to play back the response
-    engine = pyttsx3.init()
-    engine.say(voice_summary)
-    engine.runAndWait()
+    # engine = pyttsx3.init()
+    # engine.say(voice_summary)
+    # engine.runAndWait()
+
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
-def get_base_streaming_response(model,messages):
+def get_base_streaming_response(model, messages):
     # try to get a response from the model if it fails, drop the 3rd oldest message and try again
     try:
         # use the openai api to generate a response
         response = openai.ChatCompletion.create(
-                        model=model,
-                        messages=messages,
-                        stream=True,
+            model=model,
+            messages=messages,
+            stream=True,
         )
     except Exception as e:
         print(e)
         messages.pop(2)
         response = openai.ChatCompletion.create(
-                        model=model,
-                        messages=messages,
-                        stream=True,
+            model=model,
+            messages=messages,
+            stream=True,
         )
     responses = ''
     # Process each chunk
@@ -259,52 +311,28 @@ def get_base_streaming_response(model,messages):
     })
     return messages, assistant_message
 
+
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
-def get_function_calling_response(model,messages,functions,function_call):
+def get_function_calling_response(model, messages, functions, function_call):
     # try to get a response from the model if it fails, drop the 3rd oldest message and try again
     try:
         # use the openai api to generate a response
         response = openai.ChatCompletion.create(
-                        model=model,
-                        messages=messages,
-                        functions=functions,
-                        function_call=function_call,
+            model=model,
+            messages=messages,
+            functions=functions,
+            function_call=function_call,
         )
     except Exception as e:
         print(e)
         messages.pop(2)
         response = openai.ChatCompletion.create(
-                        model=model,
-                        messages=messages,
-                        functions=functions,
-                        function_call=function_call,
+            model=model,
+            messages=messages,
+            functions=functions,
+            function_call=function_call,
         )
     return response
-
-
-@tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
-def voice_message(message):
-    # use the openai api to generate a response
-
-    prompt = "You are the audio accompanyment to a text response. Don't introduce yourself unless the message looks like an introduction. Assume the user will see the text, so you shouldn't recite it. If the text is a function call, just describe it at a high level. If the text has links don't read them out loud, just describe at a high level. Your response is short and to the point. Here is the text: " + message + "Present the text to the user in 2 concise sentences, in first person as 'Fenix': "
-
-    # tenacity
-    response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
-                                            messages=[
-                                                {
-                                                    "role": "system",
-                                                    "content": prompt,
-                                                }],
-                                            max_tokens=100,
-                                            temperature=1,
-                                            top_p=1.0,
-                                            )
-    voice_summary = response['choices'][0]['message']['content']
-
-    # use the pyttsx3 library to play back the response
-    engine = pyttsx3.init()
-    engine.say(voice_summary)
-    engine.runAndWait()
 
 
 def run_conversation():
@@ -418,10 +446,10 @@ def run_conversation():
 
             derez_fenix()
 
-            fenix_state = FenixState(display_response=False,                        
-                instructions=base_instructions+" "+ temp_instructions,
-                mode="auto",
-                approved_functions=approved_functions)
+            fenix_state = FenixState(display_response=False,
+                                     instructions=base_instructions+" " + temp_instructions,
+                                     mode="auto",
+                                     approved_functions=approved_functions)
             tell_user("Meta Instructions updated and conversation history reset.",
                       COLORS['important'])
             conversation = fenix_state.conversation
@@ -442,8 +470,8 @@ def run_conversation():
 
             message = response["choices"][0]["message"]
             if message.get("function_call"):
-                print(colored(("Function Call:"+ str(message.get('function_call'))
-                ), "cyan"))
+                print(colored(("Function Call:" + str(message.get('function_call'))
+                               ), "cyan"))
                 function_name = message["function_call"]["name"]
                 if function_name in approved_functions:
                     args = json.loads(message["function_call"]["arguments"])
@@ -454,7 +482,8 @@ def run_conversation():
                         if user_input.lower() in ["y", "yes"]:
                             function_response = eval(function_name)(**args)
                             if fenix_state.display_response:
-                                print(colored(("Function Response: "+function_response), "purple"))
+                                print(
+                                    colored(("Function Response: "+function_response), "purple"))
 
                         elif user_input.lower() in ["n", "no", "exit", "quit"]:
                             tell_user(
@@ -486,23 +515,16 @@ def run_conversation():
                         }
 
                         conversation.append(function_content)
-                        #print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
-                        
-                        MAX_TOKENS = 15000
-                        
-                        if count_tokens_in_string(stringify_conversation(conversation)) > MAX_TOKENS:
-                            # Remove oldest messages until we have room for new ones
-                            while count_tokens_in_string(stringify_conversation(conversation)) + count_tokens_in_string(user_input) + count_tokens_in_string(str(function_response)) > MAX_TOKENS:
-                                #print("Dropping: " + str(conversation[2]))
-                                removed_message = conversation.pop(2)
-                                #print(f"Removing message due to token limit: {removed_message}")
+                        # print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
 
-                        conversation,assistant_message = get_base_streaming_response(
+                        conversation = truncate_conversation(conversation,user_input,function_response)
+
+                        conversation, assistant_message = get_base_streaming_response(
                             model="gpt-3.5-turbo-16k-0613",
                             messages=conversation + [
                                 {
-                                "role": "user",
-                                "content": user_input
+                                    "role": "user",
+                                    "content": user_input
                                 },
                                 function_content,
                             ],
@@ -525,19 +547,18 @@ def run_conversation():
                     voice_message(assistant_message)
 
             else:
-
-                conversation,assistant_message = get_base_streaming_response(
+                conversation = truncate_conversation(conversation,user_input)
+                conversation, assistant_message = get_base_streaming_response(
                     model="gpt-3.5-turbo-16k",
-                    messages=conversation + [
+                    messages=[
                         {
                             "role": "system",
-                            "content": "Here are the functions Fenix has access to:" + str(approved_functions) + "If the user doesn't have a question, predict 3 possible follow-ups from the user, and return them as a list of options.",
-                        }],
+                            "content": base_instructions+"Here are the functions Fenix has access to:" + str(approved_functions) + "If the user doesn't have a question, predict 3 possible follow-ups from the user, and return them as a list of options.",
+                        }]+conversation,
                 )
                 voice_message(assistant_message)
- 
 
-        #print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
+        # print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
         save_fenix()
 
 
