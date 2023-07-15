@@ -43,7 +43,6 @@ approved_functions = [
     "count_tokens_in_string",
     "count_tokens_in_file",
     "create_markdown_file",
-    "convert_markdown_to_html",
     "fenix_help",
     "move_file",
     "list_files_in_directory",
@@ -78,12 +77,14 @@ class FenixState:
                  instructions="",
                  display_response=False,
                  mode="auto",
-                 approved_functions=approved_functions):
+                 approved_functions=approved_functions,
+                 voice=None):
         self.conversation = conversation
         self.instructions = instructions
         self.display_response = display_response
         self.mode = mode
         self.approved_functions = approved_functions
+        self.voice = voice
 
 
 def play_audio(file_path):
@@ -154,7 +155,7 @@ def critique_and_revise_instructions(instructions, conversation_history, approve
                                                  }])
     tell_user(
         "Analyzing conversation history and learning from your feedback...",
-        "yellow")
+        "yellow",fenix_state.voice)
     print(colored("Meta Prompt: " + meta_prompt, "cyan"))
     print("Token count is:", count_tokens_in_string(meta_prompt))
     meta_text = meta_response['choices'][0]['message']['content']
@@ -213,11 +214,12 @@ def ask_user(question, color='purple'):
     return input(colored(f"\n{question}", color))
 
 
-def tell_user(message, color='blue'):
+def tell_user(message, color='blue',voice=None):
     print(colored(message, color))
-    voice_message(message)
+    voice_message(message, voice)
 
-def truncate_conversation(conversation,user_input="",function_response=""):
+
+def truncate_conversation(conversation, user_input="", function_response=""):
     MAX_TOKENS = 15000
 
     if count_tokens_in_string(stringify_conversation(conversation)) > MAX_TOKENS:
@@ -229,64 +231,71 @@ def truncate_conversation(conversation,user_input="",function_response=""):
             # print(f"Removing message due to token limit: {removed_message}")
     return conversation
 
+
 def strip_string(input_string):
     # Remove underscores and special characters except dashes
     cleaned_string = re.sub(r'[\W_&&[^-]]', '', input_string)
-    
+
     pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-    
+
     # Replace matches with an empty string
     cleaned_string = re.sub(pattern, '', cleaned_string)
 
     return cleaned_string.strip()
 
+
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
-def voice_message(message):
+def voice_message(message, voice=None):
     # use the openai api to generate a response
 
     # prompt = "You are Fenix, an AI assistant's voice layer that interprets given text and function responses in first person. Don't introduce yourself unless asked to do so. If the text is a function response, describe it extremely briefly. Your response is short and to the point. Here is the text: " + \
     #     message + "Be as brief as possible presenting the information.': "
+    if (voice is None):
+        return
+    else:
+        voice_prompt = "You are Fenix A.G.I. MarkII's voice. Fenix' voice is a 2nd generation voice clone (clone of a voice clone of the creator, 'a guy named Parth')." + base_instructions + " If the text is a function response, describe it extremely briefly. Your response is short and to the point. You're brilliant, witty, and attentive. If you see a list, just describe the list. Use dashes for pauses and ellipses for more of a hesitant pause. You always respond in first person as Fenix. Your response is short and to the point and around 3 sentences in length. Exclude all links and code from your presentation. Here is the text you will present: " + \
+            message
+        response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
+                                                messages=[
+                                                    {
+                                                        "role": "system",
+                                                        "content": voice_prompt,
+                                                    }],
+                                                max_tokens=500,
+                                                temperature=1,
+                                                top_p=1.0,
+                                                )
+        voice_response = response['choices'][0]['message']['content']
 
-    eleven_prompt = "You are Fenix A.G.I. MarkII's voice. Fenix' voice is a 2nd generation voice clone (clone of a voice clone of the creator, 'a guy named Parth')." + base_instructions + " If the text is a function response, describe it extremely briefly. Your response is short and to the point. You're brilliant, witty, and attentive. You can exclude links. Replace all links with plain text. If you see a list, just describe the list. Use dashes for pauses and ellipses for more of a hesitant pause. You always respond in first person as Fenix. Your response is short and to the point and around 3 sentences in length. Here is the text you will present: " + \
-        message
-    response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
-                                            messages=[
-                                                {
-                                                    "role": "system",
-                                                    "content": eleven_prompt,
-                                                }],
-                                            max_tokens=500,
-                                            temperature=1,
-                                            top_p=1.0,
-                                            )
-    voice_response = response['choices'][0]['message']['content']
+        # print(colored("Voice Response: " + voice_response, "cyan"))
+        # print(colored("Voice Response Stripped: " + strip_string(voice_response), "red"))
+        stripped_voice_response = strip_string(voice_response)
+        if (voice == "eleven_monolingual_v1"):
+            audio = generate(
+                text=stripped_voice_response,
+                voice=voice_id,
+                model="eleven_monolingual_v1"
+            )
 
-    #print(colored("Voice Response: " + voice_response, "cyan"))
-    #print(colored("Voice Response Stripped: " + strip_string(voice_response), "red"))
-    stripped_voice_response = strip_string(voice_response)
-    audio = generate(
-        text=stripped_voice_response,
-        voice=voice_id,
-        model="eleven_monolingual_v1"
-    )
+            # Save audio to a file
+            file_path = 'audio/samples/audio.wav'
+            # print(file_path)
 
-    # Save audio to a file
-    file_path = 'audio/samples/audio.wav'
-    #print(file_path)
+            with open(file_path, "wb") as file:
+                file.write(audio)
 
-    with open(file_path, "wb") as file:
-        file.write(audio)
+            # Read and rewrite the file with soundfile
+            data, samplerate = soundfile.read(file_path)
+            soundfile.write(file_path, data, samplerate)
 
-    # Read and rewrite the file with soundfile
-    data, samplerate = soundfile.read(file_path)
-    soundfile.write(file_path, data, samplerate)
-
-    # Play audio
-    play_audio(file_path)
-    # use the pyttsx3 library to play back the response
-    # engine = pyttsx3.init()
-    # engine.say(voice_summary)
-    # engine.runAndWait()
+            # Play audio
+            play_audio(file_path)
+        
+        elif (voice == "pyttsx3"):
+            # use the pyttsx3 library to play back the response
+            engine = pyttsx3.init()
+            engine.say(stripped_voice_response)
+            engine.runAndWait()
 
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
@@ -358,17 +367,18 @@ def run_conversation():
     else:
         fenix_state = FenixState(display_response=True,
                                  mode="auto",
-                                 approved_functions=approved_functions)
+                                 approved_functions=approved_functions,
+                                 voice="pyttsx3")
         conversation = fenix_state.conversation
         conversation.append(
             {"role": "system", "content": "Fenix State Created."})
 
     fenix_state.instructions = base_instructions
-    tell_user("Agent Fenix is Online.", COLORS['launch'])
+    tell_user("Agent Fenix is Online.", COLORS['launch'],fenix_state.voice)
     while True:
         user_input = ask_user("> ", COLORS['query'])
         if user_input.lower() in ["exit", "quit"]:
-            tell_user("Exiting Fenix.", COLORS['important'])
+            tell_user("Exiting Fenix.", COLORS['important'],fenix_state.voice)
             conversation.append(
                 {"role": "system", "content": "Exiting Fenix."})
             save_fenix()
@@ -395,7 +405,7 @@ def run_conversation():
             if (fenix_state.mode == "manual"):
                 fenix_state.mode = "auto"
                 tell_user("Fenix will now execute approved functions automatically.",
-                          COLORS['important'])
+                          COLORS['important'],fenix_state.voice)
                 conversation.append({
                     "role": "system",
                     "content": "Fenix is now in automatic mode."
@@ -410,7 +420,7 @@ def run_conversation():
                 fenix_state.mode = "manual"
                 tell_user(
                     "Fenix will now ask for approval before executing a function.",
-                    COLORS['important'])
+                    COLORS['important'],fenix_state.voice)
                 conversation.append({
                     "role": "system",
                     "content": "Fenix is now in manual mode."
@@ -428,7 +438,7 @@ def run_conversation():
             fenix_state.display_response = not fenix_state.display_response
             tell_user(
                 f"Display Function Response is now set to {fenix_state.display_response}.",
-                COLORS['important'])
+                COLORS['important'],fenix_state.voice)
 
             conversation.append({
                 "role":
@@ -438,13 +448,22 @@ def run_conversation():
             })
 
         elif user_input.lower() == "v":
-            # Toggle voice_enabled
-            user_input = "Toggle voice_enabled."
+            # Toggle voice
+            user_input = "Toggle voice."
             conversation.append({"role": "user", "content": user_input})
-            fenix_state.voice_enabled = not fenix_state.voice_enabled
+            if fenix_state.voice == "pyttsx3":
+                #switch to eleven labs
+                fenix_state.voice = "eleven_monolingual_v1"
+            elif fenix_state.voice == "eleven_monolingual_v1":
+                # switch to None
+                fenix_state.voice = None
+            elif fenix_state.voice == None:
+                # switch to pyttsx3
+                fenix_state.voice = "pyttsx3"
+
             tell_user(
-                f"Voice Enabled is now set to {fenix_state.voice_enabled}.",
-                COLORS['important'])
+                f"Voice is now set to {fenix_state.voice}.",
+                COLORS['important'],fenix_state.voice)
 
         elif user_input.lower() == "0":
             # update meta instructions and derez fenix
@@ -463,13 +482,14 @@ def run_conversation():
                                      mode="auto",
                                      approved_functions=approved_functions)
             tell_user("Meta Instructions updated and conversation history reset.",
-                      COLORS['important'])
+                      COLORS['important'],fenix_state.voice)
+            tell_user("I have appended the following instructions to my base instructions: " + temp_instructions,
+                      COLORS['important'],fenix_state.voice)
             conversation = fenix_state.conversation
             conversation.append({
                 "role": "system",
                 "content": "New Fenix State Created."
             })
-            tell_user(base_instructions, COLORS['launch'])
 
         else:
             conversation.append({"role": "user", "content": user_input})
@@ -492,14 +512,17 @@ def run_conversation():
                         user_input = ask_user("Do you want to run the function? (y/n)",
                                               COLORS['query'])
                         if user_input.lower() in ["y", "yes"]:
-                            function_response = eval(function_name)(**args)
+                            try:
+                                function_response = eval(function_name)(**args)
+                            except Exception as e:
+                                function_response = f"Error: {str(e)}"
                             if fenix_state.display_response:
                                 print(
                                     colored(("Function Response: "+function_response), "purple"))
 
                         elif user_input.lower() in ["n", "no", "exit", "quit"]:
                             tell_user(
-                                "Function Call: Not executing function", COLORS['important'])
+                                "Function Call: Not executing function", COLORS['important'],fenix_state.voice)
                             assistant_message = "Function execution skipped by user."
                             conversation.append({
                                 "role": "assistant",
@@ -509,7 +532,7 @@ def run_conversation():
                         else:
                             tell_user(
                                 "Unrecognized input. Default action is not to execute the function.",
-                                COLORS['important'])
+                                COLORS['important'],fenix_state.voice)
                             assistant_message = "Function execution skipped due to unrecognized input."
                             conversation.append({
                                 "role": "assistant",
@@ -517,7 +540,10 @@ def run_conversation():
                             })
                             function_response = None
                     elif fenix_state.mode == "auto":
-                        function_response = eval(function_name)(**args)
+                        try:
+                            function_response = eval(function_name)(**args)
+                        except Exception as e:
+                            function_response = f"Error: {str(e)}"
 
                     if function_response is not None:
                         function_content = {
@@ -527,9 +553,9 @@ def run_conversation():
                         }
 
                         conversation.append(function_content)
-                        # print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
 
-                        conversation = truncate_conversation(conversation,user_input,function_response)
+                        conversation = truncate_conversation(
+                            conversation, user_input, function_response)
 
                         conversation, assistant_message = get_base_streaming_response(
                             model="gpt-3.5-turbo-16k-0613",
@@ -546,20 +572,18 @@ def run_conversation():
                             "role": "assistant",
                             "content": assistant_message
                         })
-                        voice_message(assistant_message)
 
                 else:
                     tell_user("Sorry, I don't have access to that function.",
-                              COLORS['important'])
+                              COLORS['important'],fenix_state.voice)
                     assistant_message = "Function execution skipped by assistant."
                     conversation.append({
                         "role": "assistant",
                         "content": assistant_message
                     })
-                    voice_message(assistant_message)
 
             else:
-                conversation = truncate_conversation(conversation,user_input)
+                conversation = truncate_conversation(conversation, user_input)
                 conversation, assistant_message = get_base_streaming_response(
                     model="gpt-3.5-turbo-16k",
                     messages=[
@@ -568,7 +592,8 @@ def run_conversation():
                             "content": base_instructions+"Here are the functions Fenix has access to:" + str(approved_functions) + "If the user doesn't have a question, predict 3 possible follow-ups from the user, and return them as a list of options.",
                         }]+conversation,
                 )
-                voice_message(assistant_message)
+            print("Voice is: ", fenix_state.voice)
+            voice_message(assistant_message, fenix_state.voice)
 
         # print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
         save_fenix()
