@@ -92,6 +92,7 @@ def main():
                 elif filename.lower().endswith('.pdf'):
                     loader = PyPDFLoader(filepath)
                     doc = loader.load_and_split()
+                
 
                 if doc is not None and filename != 'indexes':
                     if not doc:

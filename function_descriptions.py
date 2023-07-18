@@ -225,21 +225,6 @@ function_descriptions = [
     },
 
     {
-        "name": "convert_markdown_to_html",
-        "description": "Convert a markdown file to html",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "file_path": {
-                    "type": "string",
-                    "description": "The file path to the markdown file",
-                },
-            },
-            "required": ["file_path"],
-        },
-    },
-
-    {
         "name": "move_file",
         "description": "Move a file from one location to another",
         "parameters": {

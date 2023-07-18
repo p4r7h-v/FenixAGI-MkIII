@@ -1,13 +1,5 @@
 '''
-Introducing FenixAGI, an advanced AI assistant designed to revolutionize project management. Powered by Open A.I.'s GPT-16k 3.5-turbo language model, Fenix is a versatile companion that assists users in various tasks. From codebase searches to web scraping and file management, Fenix can complete tasks efficiently. Fenix's extensibility ensures adaptability to evolving project needs. With its ability to learn from user feedback, Fenix continually improves its performance, making it an invaluable asset in streamlining project workflows. Experience the future of AI assistance with FenixAGI.
-
-To use the functions in the functions.py file, a person needs the following API keys:
-
-1. BING_SEARCH_KEY: Fenix uses Bing Search API for performing web searches using the `bing_search_save()` function. Get yours here:https://portal.azure.com/#
-2. OPENAI_API_KEY: GPT-3.5-Turbo-16k is required to run  the main chat loop and call functions. here: https://platform.openai.com/signup
-
-Fenix is an advanced AI assistant made by Parth: https://www.linkedin.com/in/parthspatil/ 
-For more wacky LLM projects: https://replit.com/@p4r7h.
+Introducing FenixAGI, an advanced AI assistant designed to revolutionize project management. Powered by Open A.I.'s GPT-16k 3.5-turbo language model, Fenix is a versatile companion that assists users in various tasks.
 '''
 
 import openai
@@ -95,6 +87,8 @@ def play_audio(file_path):
 
 def fenix_help(help_query):
     help_text = '''
+Fenix is an advanced AI assistant made by Parth: https://www.linkedin.com/in/parthspatil/ https://twitter.com/htrapvader 
+For more wacky LLM projects: https://replit.com/@p4r7h.
   Restoring Fenix State
   At the start of a session, the function checks if a saved state of the Fenix AI assistant exists. If it does, the state is loaded and the session continues from where it left off last time. If not, a new state is initialized.
   User Input
@@ -552,8 +546,12 @@ def run_conversation():
                             "content": str(function_response),
                         }
 
-                        conversation.append(function_content)
-
+                        conversation.append({
+                            "role": "system",
+                            "content": "Function Response: " + str(function_response)
+                        })
+                        print("Conversation length (tokens): " +
+                              str(count_tokens_in_string(stringify_conversation(conversation))))
                         conversation = truncate_conversation(
                             conversation, user_input, function_response)
 
@@ -592,7 +590,7 @@ def run_conversation():
                             "content": base_instructions+"Here are the functions Fenix has access to:" + str(approved_functions) + "If the user doesn't have a question, predict 3 possible follow-ups from the user, and return them as a list of options.",
                         }]+conversation,
                 )
-            print("Voice is: ", fenix_state.voice)
+            #print("Voice is: ", fenix_state.voice)
             voice_message(assistant_message, fenix_state.voice)
 
         # print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))

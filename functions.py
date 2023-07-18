@@ -38,21 +38,8 @@ def create_markdown_file(file_name, content):
     # Now you can safely write your file
     with open(file_path, 'w') as file:
         file.write(content)
+    return f"Successfully created file: {file_path}"
 
-
-def convert_markdown_to_html(file_path):
-    # Extract the file name from the file path
-    file_name = os.path.basename(file_path)
-    # Open the file for reading and read the input to a temp variable
-    with open(file_path, 'r') as f:
-        tempMd = f.read()
-
-    # Convert the input to HTML
-    tempHtml = markdown.markdown(tempMd)
-    # If necessary, could print or edit the results at this point.
-    # Open the HTML file and write the output.
-    with open(file_name+".html", 'w') as f:
-        f.write(tempHtml)
 
 
 def bing_search_save(file_name, query):

@@ -24,3 +24,4 @@ markdown
 selenium==4.10.0
 tenacity
 keyboard
+PyPDF2
