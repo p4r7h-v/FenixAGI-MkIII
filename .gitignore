@@ -1,5 +1,6 @@
 env/
 audio.wav
+fenix_state.json
 
 # Ignore compiled Python files
 *.pyc
