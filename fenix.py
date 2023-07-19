@@ -50,7 +50,7 @@ approved_functions = [
     "visualize_data_3d",
 ]
 
-base_instructions = "Fenix A.G.I. Mark-II is an advanced AI assistant built by a guy named Parth. Fenix is an AI agent built on top of the Open A.I. GPT language models. Fenix can execute the following functions:" + str(approved_functions) + \
+base_instructions = "Fenix A.G.I. Mark-II is an advanced AI assistant built by a guy named parth. Fenix is an AI agent built on top of the Open A.I. GPT language models. Fenix can execute the following functions:" + str(approved_functions) + \
     "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extended and personalized, Fenix is a powerful tool for any developer, researcher, or student."
 
 COLORS = {
@@ -101,7 +101,7 @@ def play_audio(file_path):
 
 def fenix_help(help_query):
     help_text = '''
-Fenix is an advanced AI assistant made by Parth: https://www.linkedin.com/in/parthspatil/ https://twitter.com/htrapvader 
+Fenix is an advanced AI assistant made by parth: https://www.linkedin.com/in/parthspatil/ https://twitter.com/htrapvader 
 For more wacky LLM projects: https://replit.com/@p4r7h.
   Restoring Fenix State
   At the start of a session, the function checks if a saved state of the Fenix AI assistant exists. If it does, the state is loaded and the session continues from where it left off last time. If not, a new state is initialized.
@@ -110,7 +110,7 @@ For more wacky LLM projects: https://replit.com/@p4r7h.
   Special Commands
   There are several special commands the user can input to control the behavior of Fenix:
   'exit' or 'quit': Terminates the session and saves the current state of Fenix.
-  'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (Parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
+  'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
   'a': Toggles between manual and automatic mode. In manual mode, Fenix will ask for approval before executing a function. In automatic mode, approved functions are executed automatically.
   'd': Toggles whether the assistant's responses should be displayed or not.
   'r': Resets Fenix to a default state, clearing the conversation history and meta instructions.
@@ -224,7 +224,7 @@ def ask_user(question, color='purple'):
     return input(colored(f"\n{question}", color))
 
 
-def tell_user(message, color='blue',voice_mode=None):
+def tell_user(message, color='blue',voice_mode="pyttsx3"):
     print(colored(message, color))
     voice_message(message, voice_mode)
 
@@ -243,10 +243,11 @@ def truncate_conversation(conversation, user_input="", function_response=""):
 
 
 def strip_string(input_string):
-    # Keep only alphanumeric characters and spaces
-    cleaned_string = re.sub(r'[^a-zA-Z0-9 ]+', '', input_string)
+    # Remove any links
+    pattern = r'https?:\/\/.*[\r\n]*'
 
-    pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    # Swap underscores for spaces
+    cleaned_string = input_string.replace("_", " ")
 
     # Replace matches with an empty string
     cleaned_string = re.sub(pattern, '', cleaned_string)
@@ -260,11 +261,10 @@ def strip_string(input_string):
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
 def voice_message(message, voice_mode=None):
-    if (voice_mode is None):
+    if voice_mode is None:
         return
     else:
-        voice_prompt = base_instructions + "You are Fenix A.G.I. Mark-II's voice. The 'eleven_monolingual_v1' voice is a 2nd generation voice clone (clone of a voice clone of the creator, 'a guy named Parth'). You present given text as if you are Fenix. If the text is a function response, describe it extremely briefly. If it says there's a visualization, assume there's a visualization. sYour response is short and to the point. If you see a list, just describe the list at a high level. Use dashes '-' for natural pauses and ellipses '...' for more of a hesitant pause. You always respond in first person as Fenix, replacing references to Fenix with 'I'. Your response is short and to the point and around 3 sentences in length. Any mention of 'OpenAI' can be replaced with 'Open A.I.'. Here is the text you will present: " + \
-            message
+        voice_prompt = base_instructions + "You are Fenix A.G.I. Mark-II's voice. The 'eleven_monolingual_v1' voice is a 2nd generation voice clone (clone of a voice clone of the creator, 'a guy named parth'). You present given text as if you are Fenix. If the text is a function response, describe it extremely briefly. If it says there's a visualization, assume there is a provided visualization. Your response is short and to the point. If you see a list, just describe the list at a high level. Use dashes '-' for natural pauses and ellipses '...' for more of a hesitant pause. You always respond in first person as Fenix, replacing references to Fenix with 'I'. Your response is short and to the point and around 3 sentences in length. Any mention of 'OpenAI' can be replaced with 'Open A.I.'. Here is the text you will present: " + message
         response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
                                                 messages=[
                                                     {
@@ -279,7 +279,8 @@ def voice_message(message, voice_mode=None):
 
 
         stripped_voice_response = strip_string(voice_response)
-        if (voice_mode == "eleven_monolingual_v1"):
+        #print(colored("Voice Response: " + stripped_voice_response, "yellow"))
+        if voice_mode == "eleven_monolingual_v1" and voice_id is not None:  
             audio = generate(
                 text=stripped_voice_response,
                 voice=voice_id,
@@ -288,7 +289,6 @@ def voice_message(message, voice_mode=None):
 
             # Save audio to a file
             file_path = 'audio.wav'
-            # print(file_path)
 
             with open(file_path, "wb") as file:
                 file.write(audio)
@@ -300,7 +300,7 @@ def voice_message(message, voice_mode=None):
             # Play audio
             play_audio(file_path)
         
-        elif (voice_mode == "pyttsx3"):
+        elif voice_mode == "pyttsx3":
             # use the pyttsx3 library to play back the response
             engine = pyttsx3.init()
             engine.say(stripped_voice_response)
@@ -387,7 +387,7 @@ def run_conversation():
 
     tell_user("""There are several special keyboard commands the user can input to control the behavior of Fenix. Here are the special keyboard commands:
 
-  'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (Parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
+  'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
   'a': Toggles between manual and automatic mode. In manual mode, Fenix will ask for approval before executing a function. In automatic mode, approved functions are executed automatically.
   'd': Toggles whether the assistant's responses should be displayed or not.
   'r': Resets Fenix to a default state, clearing the conversation history and meta instructions.

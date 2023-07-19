@@ -1,5 +1,5 @@
 env/
-
+audio.wav
 
 # Ignore compiled Python files
 *.pyc
