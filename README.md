@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # FenixAGI MkII
 
 Fenix A.G.I. Mark-II is an advanced AI assistant built by parth. Fenix is designed to assist users in various tasks using OpenAI's GPT language models.
