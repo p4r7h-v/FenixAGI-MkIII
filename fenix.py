@@ -405,18 +405,6 @@ def run_conversation():
             conversation.append({"role": "system", "content": "State saved."})
             break
 
-        elif user_input.lower() in ["r"]:
-            # Update the meta instructions
-            user_input = "Update the meta instructions."
-            conversation.append({"role": "user", "content": user_input})
-            fenix_state.instructions = critique_and_revise_instructions(fenix_state.instructions,
-                                                                        conversation, approved_functions)
-            conversation.append({
-                "role": "system",
-                "content": "Meta instructions updated."
-            })
-            save_fenix()
-            conversation.append({"role": "system", "content": "State saved."})
 
         elif user_input.lower() == "a":
             # Toggle automatic function calling mode
