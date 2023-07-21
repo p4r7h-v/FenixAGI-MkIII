@@ -192,7 +192,7 @@ function_descriptions = [
 
     {
         "name": "create_markdown_file",
-        "description": "Create a markdown file",
+        "description": "Creates a markdown file, writing content to it",
         "parameters": {
             "type": "object",
             "properties": {
@@ -260,7 +260,7 @@ function_descriptions = [
 
     {
         "name": "visualize_data_3d",
-        "description": "Given a dataframe, visualize the data in 3D",
+        "description": "Given a dataframe of code, visualizes the data in 3D. This is presented in the web browser in a new tab.",
         "parameters": {
             "type": "object",
             "properties": {

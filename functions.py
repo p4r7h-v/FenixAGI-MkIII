@@ -49,6 +49,10 @@ def bing_search_save(file_name, query):
     params = {"q": query, "count": 50, "offset": 0, "freshness": "Month"}
     file_path = "./web_searches/"+file_name
     response = requests.get(base_url, headers=headers, params=params)
+    # if 401, then return error
+    if response.status_code == 401:
+        return "Error: Invalid Bing Search Key"
+    
     response.raise_for_status()
     search_results = response.json()
 
@@ -243,7 +247,7 @@ def visualize_data_3d(code_search_csv_path):
     fig = go.Figure(data=plot_markers, layout=layout)
 
     fig.show()
-    return "The visualization is shown in a new tab."
+    return "The visualization is ready."
 
 
 def scrape_website(url):
