@@ -1,34 +1,3 @@
-# Ignore all files and directories except the main chatbot and UI
-*
-!.gitignore
-!fenix.py
-!functions.py
-!function_descriptions.py
-!web_searches/
-!sveltekit-ai-chatbot/
-!README.md
-!svelte.config.js
-!tailwind.config.cjs
-!FenixState.py
-!FileOperations.py
-!voice_assistant.py
-
-# Exclude build and dependency files
-/dist
-/node_modules
-/package-lock.json
-
-# Exclude IDE-specific files
-.idea
-.vscode
-
-# Exclude macOS specific files
-.DS_Store
-
-# Exclude Jobs, Content, and Web Searches
-/jobs
-/content
-/web_searches
 
 # Ignore fenix_state.json
 fenix_state.json
