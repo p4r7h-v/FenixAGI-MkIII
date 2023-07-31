@@ -1,10 +1,8 @@
 # Ignore all files and directories except the main chatbot and UI
 *
-!.gitignore
 !fenix.py
 !functions.py
 !function_descriptions.py
-!README.md
 !FenixState.py
 !FileOperations.py
 !voice_assistant.py
