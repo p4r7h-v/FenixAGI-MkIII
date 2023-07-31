@@ -24,6 +24,6 @@ scikit-learn
 selenium==4.10.0
 simpleaudio
 soundfile
-streamlit==0.88.0
+streamlit
 tenacity
 termcolor==2.3.0

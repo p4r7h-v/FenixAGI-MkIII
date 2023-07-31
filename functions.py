@@ -22,13 +22,33 @@ import plotly.graph_objs as go
 import keyboard
 
 
-def list_files_in_directory(directory_path):
-    files = []
-    directory_path = "."+directory_path
-    for file in os.listdir(directory_path):
-        if os.path.isfile(os.path.join(directory_path, file)):
-            files.append(file)
-    return files
+
+def get_folder_hierarchy(folder_path):
+    if not os.path.exists(folder_path):
+        folder_path = '.'
+    gitignore_path = os.path.join(folder_path, '.gitignore')
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path, 'r') as gitignore_file:
+            gitignore = gitignore_file.read()
+        spec = pathspec.PathSpec.from_lines(pathspec.patterns.GitWildMatchPattern, gitignore.splitlines())
+
+    def get_folder_contents(folder_path, level):
+        indent = "  " * level
+        hierarchy = ""
+        for item in sorted(os.listdir(folder_path)):
+            item_path = os.path.join(folder_path, item)
+            if os.path.exists(gitignore_path) and spec.match_file(os.path.relpath(item_path, folder_path)):
+                continue
+            if os.path.isdir(item_path):
+                hierarchy += f"{indent}- {item}/\n"
+                hierarchy += get_folder_contents(item_path, level + 1)
+            else:
+                hierarchy += f"{indent}- {item}\n"
+        return hierarchy
+
+    hierarchy = "# Folder Hierarchy\n\n"
+    hierarchy += get_folder_contents(folder_path, 0)
+    return hierarchy
 
 
 def create_markdown_file(file_name, content):

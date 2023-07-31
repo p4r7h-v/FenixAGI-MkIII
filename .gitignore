@@ -9,6 +9,9 @@
 !README.md
 !svelte.config.js
 !tailwind.config.cjs
+!FenixState.py
+!FileOperations.py
+!voice_assistant.py
 
 # Exclude build and dependency files
 /dist
@@ -29,4 +32,5 @@
 
 # Ignore fenix_state.json
 fenix_state.json
-```
+.vercel
+/myenv

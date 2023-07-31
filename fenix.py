@@ -11,11 +11,10 @@ from functions import *
 from function_descriptions import function_descriptions
 import pyttsx3
 import tenacity
-from elevenlabs import voices, generate, set_api_key
-import soundfile
-import simpleaudio as sa
 import re
-
+from FileOperations import FileOperations
+from FenixState import FenixState
+from voice_assistant import VoiceAssistant
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 # check if the api key is valid with a try catch block
@@ -25,9 +24,7 @@ except Exception as e:
     print(e)
     
 
-# set the eleven labs api key
-set_api_key(os.environ['xi-api-key'])
-
+va = VoiceAssistant()
 
 approved_functions = [
     "search_codebase",
@@ -48,6 +45,7 @@ approved_functions = [
     "list_files_in_directory",
     "suggest_function_chain",
     "visualize_data_3d",
+    "get_folder_hierarchy",
 ]
 
 base_instructions = "Fenix A.G.I. Mark-II is an advanced AI assistant built by a guy named parth. Fenix is an AI agent built on top of the Open A.I. GPT language models. Fenix can execute the following functions:" + str(approved_functions) + \
@@ -63,40 +61,6 @@ COLORS = {
     # Add more as necessary...
 }
 
-# Check if voices are available otherwise use pyttsx3
-try:    
-    all_voices = voices()
-    voice_id = next(
-        (voice.voice_id for voice in all_voices
-        if voice.name == 'Parth TTS'), None)
-    premium_voice_enabled = True
-except:
-    voice_id = None
-    premium_voice_enabled = False
-
-
-
-class FenixState:
-
-    def __init__(self,
-                 conversation=[],
-                 instructions="",
-                 display_response=False,
-                 mode="auto",
-                 approved_functions=approved_functions,
-                 voice_mode=None):
-        self.conversation = conversation
-        self.instructions = instructions
-        self.display_response = display_response
-        self.mode = mode
-        self.approved_functions = approved_functions
-        self.voice_mode = voice_mode
-
-
-def play_audio(file_path):
-    wave_obj = sa.WaveObject.from_wave_file(file_path)
-    play_obj = wave_obj.play()
-    play_obj.wait_done()
 
 
 def fenix_help(help_query):
@@ -108,7 +72,7 @@ For more wacky LLM projects: https://replit.com/@p4r7h.
   User Input
   The function continuously prompts the user for input and processes it accordingly.
   Special Commands
-  There are several special commands the user can input to control the behavior of Fenix:
+  There are several special commands the user can input to guide the behavior of Fenix:
   'exit' or 'quit': Terminates the session and saves the current state of Fenix.
   'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
   'a': Toggles between manual and automatic mode. In manual mode, Fenix will ask for approval before executing a function. In automatic mode, approved functions are executed automatically.
@@ -186,36 +150,6 @@ def critique_and_revise_instructions(instructions, conversation_history, approve
     return new_instructions
 
 
-def save_fenix(filename="fenix_state.json"):
-    global fenix_state  # Access the global instance
-    with open("fenix_state.json", 'w') as f:
-        json.dump(fenix_state.__dict__, f)
-        return "Fenix State Saved."
-
-
-def rez_fenix(filename="fenix_state.json"):
-    try:
-        with open('fenix_state.json', 'r') as f:
-            if f.read():
-                # Move the read cursor back to the start of the file
-                f.seek(0)
-                data = json.load(f)
-                fenix_state = FenixState(**data)  # Load data if there is any
-            else:
-                print("The file is empty.")
-                fenix_state = FenixState()  # Create a new state
-    except FileNotFoundError:
-        fenix_state = FenixState()  # Create a new state if no data
-    return fenix_state
-
-
-def derez_fenix(filename="fenix_state.json"):
-    # Delete the fenix_state.json file
-    if os.path.exists("fenix_state.json"):
-        os.remove("fenix_state.json")
-        return "Fenix State Derezzed."
-
-
 def stringify_conversation(conversation):
     return ' '.join([str(msg) for msg in conversation])
 
@@ -226,7 +160,7 @@ def ask_user(question, color='purple'):
 
 def tell_user(message, color='blue',voice_mode="pyttsx3"):
     print(colored(message, color))
-    voice_message(message, voice_mode)
+    va.voice_message(base_instructions,message, voice_mode)
 
 
 def truncate_conversation(conversation, user_input="", function_response=""):
@@ -236,75 +170,15 @@ def truncate_conversation(conversation, user_input="", function_response=""):
         # Remove oldest messages until we have room for new ones
         while count_tokens_in_string(stringify_conversation(conversation)) + count_tokens_in_string(user_input) + count_tokens_in_string(str(function_response)) > MAX_TOKENS:
             # print("Dropping: " + str(conversation[2]))
-            removed_message = conversation.pop(2)
-            removed_message = conversation.pop(3)
-            # print(f"Removing message due to token limit: {removed_message}")
+            for _ in range(2):  # Two pop operations
+                if len(conversation) > 2:  # Ensure we have enough messages to remove
+                    removed_message = conversation.pop(2)
+                    # print(f"Removing message due to token limit: {removed_message}")
+                else:
+                    break  # If not enough messages to remove, exit the loop
     return conversation
 
 
-def strip_string(input_string):
-    # Remove any links
-    pattern = r'https?:\/\/.*[\r\n]*'
-
-    # Swap underscores for spaces
-    cleaned_string = input_string.replace("_", " ")
-
-    # Replace matches with an empty string
-    cleaned_string = re.sub(pattern, '', cleaned_string)
-    
-    # Remove code blocks
-    cleaned_string = re.sub(r'```.*?```', '', cleaned_string, flags=re.DOTALL)
- 
-    return cleaned_string.strip()
-
-
-
-@tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
-def voice_message(message, voice_mode=None):
-    if voice_mode is None:
-        return
-    else:
-        voice_prompt = base_instructions + "You are Fenix A.G.I. Mark-II's voice. The 'eleven_monolingual_v1' voice is a 2nd generation voice clone (clone of a voice clone of the creator, 'a guy named parth'). You present given text as if you are Fenix. If the text is a function response, describe it extremely briefly. If it says there's a visualization, assume there is a provided visualization. Your response is short and to the point. If you see a list, just describe the list at a high level. Use dashes '-' for natural pauses and ellipses '...' for more of a hesitant pause. You always respond in first person as Fenix, replacing references to Fenix with 'I'. Your response is short and to the point and around 3 sentences in length. Any mention of 'OpenAI' can be replaced with 'Open A.I.'. Here is the text you will present: " + message
-        response = openai.ChatCompletion.create(model="gpt-3.5-turbo-16k-0613",
-                                                messages=[
-                                                    {
-                                                        "role": "system",
-                                                        "content": voice_prompt,
-                                                    }],
-                                                max_tokens=500,
-                                                temperature=1,
-                                                top_p=1.0,
-                                                )
-        voice_response = response['choices'][0]['message']['content']
-
-
-        stripped_voice_response = strip_string(voice_response)
-        #print(colored("Voice Response: " + stripped_voice_response, "yellow"))
-        if voice_mode == "eleven_monolingual_v1" and voice_id is not None:  
-            audio = generate(
-                text=stripped_voice_response,
-                voice=voice_id,
-                model="eleven_monolingual_v1"
-            )
-
-            # Save audio to a file
-            file_path = 'audio.wav'
-
-            with open(file_path, "wb") as file:
-                file.write(audio)
-
-            # Read and rewrite the file with soundfile
-            data, samplerate = soundfile.read(file_path)
-            soundfile.write(file_path, data, samplerate)
-
-            # Play audio
-            play_audio(file_path)
-        
-        elif voice_mode == "pyttsx3":
-            # use the pyttsx3 library to play back the response
-            engine = pyttsx3.init()
-            engine.say(stripped_voice_response)
-            engine.runAndWait()
 
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(5), wait=tenacity.wait_fixed(2))
@@ -369,7 +243,7 @@ def run_conversation():
     global fenix_state
     # Check if the state file exists
     if os.path.exists("fenix_state.json"):
-        fenix_state = rez_fenix()
+        fenix_state = FileOperations.rez_fenix()
         conversation = fenix_state.conversation
         conversation.append(
             {"role": "system", "content": "Fenix State Rezzed."})
@@ -385,7 +259,7 @@ def run_conversation():
     fenix_state.instructions = base_instructions
     tell_user("Agent Fenix is Online.", COLORS['launch'],fenix_state.voice_mode)
 
-    tell_user("""There are several special keyboard commands the user can input to control the behavior of Fenix. Here are the special keyboard commands:
+    tell_user("""There are several special keyboard commands the user can use to guide Fenix's behavior. Here are the special keyboard commands:
 
   'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
   'a': Toggles between manual and automatic mode. In manual mode, Fenix will ask for approval before executing a function. In automatic mode, approved functions are executed automatically.
@@ -401,7 +275,7 @@ def run_conversation():
             tell_user("Exiting Fenix.", COLORS['important'],fenix_state.voice)
             conversation.append(
                 {"role": "system", "content": "Exiting Fenix."})
-            save_fenix()
+            FileOperations.save_fenix(fenix_state)
             conversation.append({"role": "system", "content": "State saved."})
             break
 
@@ -461,18 +335,15 @@ def run_conversation():
             conversation.append({"role": "user", "content": user_input})
 
             if fenix_state.voice_mode == "pyttsx3":
-                if premium_voice_enabled:
-                    #switch to eleven labs
-                    fenix_state.voice_mode = "eleven_monolingual_v1"
-                else:
-                    # switch to None
-                    fenix_state.voice_mode = None
+                va.switch_voice("eleven_monolingual_v1")
+                fenix_state.voice_mode = va.voice_mode
             elif fenix_state.voice_mode == "eleven_monolingual_v1":
-                # switch to None
-                fenix_state.voice_mode = None
+                va.switch_voice(None)
+                fenix_state.voice_mode = va.voice_mode
             elif fenix_state.voice_mode == None:
-                # switch to pyttsx3
-                fenix_state.voice_mode = "pyttsx3"
+                va.switch_voice("pyttsx3")
+                fenix_state.voice_mode = va.voice_mode
+
             conversation.append({
                 "role": "system",
                 "content": "Voice is now set to " + str(fenix_state.voice_mode)
@@ -480,6 +351,7 @@ def run_conversation():
             tell_user(
                 f"Voice is now set to {fenix_state.voice_mode}.",
                 COLORS['important'],fenix_state.voice_mode)
+
 
         elif user_input.lower() == "r":
             # update meta instructions and derez fenix
@@ -491,7 +363,7 @@ def run_conversation():
             fenix_state.conversation.clear()  # Clear the conversation in FenixState
             conversation.append({"role": "user", "content": user_input})
 
-            derez_fenix()
+            FileOperations.derez_fenix()
 
             fenix_state = FenixState(display_response=False,
                                      instructions=base_instructions+" " + temp_instructions,
@@ -618,10 +490,11 @@ def run_conversation():
                         }]+conversation,
                 )
             #print("Voice is: ", fenix_state.voice_mode)
-            voice_message(assistant_message, fenix_state.voice_mode)
+            va.voice_message(base_instructions,assistant_message, fenix_state.voice_mode)
+
 
         # print("\nConversation length (tokens): " + str(count_tokens_in_string(stringify_conversation(conversation))))
-        save_fenix()
+        FileOperations.save_fenix(fenix_state)
 
 
 run_conversation()
