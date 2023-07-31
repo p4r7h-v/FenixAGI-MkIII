@@ -1,5 +1,34 @@
+# Ignore all files and directories except the main chatbot and UI
+*
+!.gitignore
+!fenix.py
+!functions.py
+!function_descriptions.py
+!README.md
+!FenixState.py
+!FileOperations.py
+!voice_assistant.py
+
+# Exclude build and dependency files
+/dist
+/node_modules
+/package-lock.json
+
+# Exclude IDE-specific files
+.idea
+.vscode
+
+# Exclude macOS specific files
+.DS_Store
+
+# Exclude test files
+/jobs/*
+/content/*
+/web_searches/*
 
 # Ignore fenix_state.json
 fenix_state.json
 .vercel
 /myenv
+/env
+
