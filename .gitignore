@@ -1,16 +1,33 @@
-env/
-audio.wav
-fenix_state.json
+# Ignore all files and directories except the main chatbot and UI
+*
+!.gitignore
+!fenix.py
+!functions.py
+!function_descriptions.py
+!README.md
+!FenixState.py
+!FileOperations.py
+!voice_assistant.py
 
-# Ignore compiled Python files
-*.pyc
-*.pyo
-__pycache__/
+# Exclude build and dependency files
+/dist
+/node_modules
+/package-lock.json
 
-# Ignore IDE and editor files
-.vscode/
-.idea/
+# Exclude IDE-specific files
+.idea
+.vscode
 
-# Ignore system and temporary files
+# Exclude macOS specific files
 .DS_Store
-Thumbs.db
+
+# Exclude Jobs, Content, and Web Searches
+/jobs
+/content
+/web_searches
+
+# Ignore fenix_state.json
+fenix_state.json
+.vercel
+/myenv
+/env
