@@ -22,9 +22,10 @@
 .DS_Store
 
 # Exclude test files
-/jobs/*
-/content/*
-/web_searches/*
+/jobs/
+/content/
+/web_searches/
+/plans/
 
 # Ignore fenix_state.json
 fenix_state.json
