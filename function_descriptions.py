@@ -16,7 +16,6 @@ function_descriptions = [
     },
 
     {
-<<<<<<< HEAD
         "name": "get_folder_hierarchy",
         "description": "Takes a folder path as input and returns the folder hierarchy as a string formatted in Markdown syntax. The folder hierarchy represents the structure of the provided folder, including its subfolders and files. The function recursively traverses the folder and generates the hierarchy with appropriate indentation to visually represent the nested structure. Each subfolder and file is represented with a bullet point in the returned string.",
         "parameters": {
@@ -32,8 +31,6 @@ function_descriptions = [
     },
 
     {
-=======
->>>>>>> 42c7893ebcfa27703e171d2412c3dd4c1cb1a184
         "name": "write_file",
         "description": "writes the provided content to the provided file path",
         "parameters": {
@@ -210,11 +207,7 @@ function_descriptions = [
 
     {
         "name": "create_markdown_file",
-<<<<<<< HEAD
         "description": "Creates a markdown file, writing content to it",
-=======
-        "description": "Create a markdown file",
->>>>>>> 42c7893ebcfa27703e171d2412c3dd4c1cb1a184
         "parameters": {
             "type": "object",
             "properties": {
@@ -314,8 +307,4 @@ function_descriptions = [
         }
     },
 
-<<<<<<< HEAD
 ]
-=======
-]
->>>>>>> 42c7893ebcfa27703e171d2412c3dd4c1cb1a184
