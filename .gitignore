@@ -1,6 +1,5 @@
 # Ignore all files and directories except the main chatbot and UI
 *
-!.gitignore
 !fenix.py
 !functions.py
 !function_descriptions.py
@@ -31,3 +30,5 @@ fenix_state.json
 .vercel
 /myenv
 /env
+
+.gitignore
