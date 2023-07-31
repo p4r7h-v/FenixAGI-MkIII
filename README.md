@@ -1,10 +1,15 @@
-# FenixAGI MkII
+# FenixAGI MkII: Advanced AI Assistant
 
-Fenix A.G.I. Mark-II is an advanced AI assistant built by parth. Fenix is designed to assist users in various tasks using OpenAI's GPT language models.
+Fenix A.G.I. Mark-II is an advanced AI assistant designed to revolutionize project management. Built by Parth and powered by OpenAI's GPT-16k 3.5-turbo language model, FenixAGI can assist users in a wide array of tasks including file operations, web scraping, data visualization, and more.
+
+## Features
+
+- **Interactive Voice Assistant**: FenixAGI supports voice interaction, with the ability to switch between different voices.
+- **Customizable**: You can easily extend FenixAGI's functionality by adding new functions to the `approved_functions` list and corresponding entries to the `function_descriptions` list.
+- **Learning Capabilities**: FenixAGI can learn from user feedback and revise its instructions to improve performance over time.
+- **Powered by OpenAI**: FenixAGI utilizes the powerful GPT-16k 3.5-turbo language model by OpenAI.
 
 ## Getting Started
-
-To get started with Fenix, follow the steps below:
 
 ### Prerequisites
 
@@ -14,6 +19,7 @@ To get started with Fenix, follow the steps below:
 ### Installation
 
 1. Clone the repository:
+
    ```
    git clone https://github.com/p4r7h-v/FenixAGI-MkII
    ```
@@ -51,6 +57,14 @@ Fenix uses three API keys for its functionality. Follow the instructions below t
    python fenix.py
    ```
 2. Follow the prompts and interact with Fenix by typing your queries or commands.
+
+While running, FenixAGI accepts a variety of commands to guide its behavior:
+
+- 'v': Toggle voice modes.
+- 'a': Toggle between automatic and manual mode for function execution.
+- 'd': Toggle display of the assistant's responses.
+- 'r': Reset FenixAGI to a default state, clearing the conversation history and meta instructions.
+- 'exit' or 'quit': Terminate the session and save the current state of FenixAGI.
 
 ## License
 
