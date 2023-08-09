@@ -15,6 +15,7 @@ import re
 from FileOperations import FileOperations
 from FenixState import FenixState
 from voice_assistant import VoiceAssistant
+import speech_to_text
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 # check if the api key is valid with a try catch block
@@ -77,6 +78,7 @@ For more wacky LLM projects: https://replit.com/@p4r7h.
   'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
   'a': Toggles between manual and automatic mode. In manual mode, Fenix will ask for approval before executing a function. In automatic mode, approved functions are executed automatically.
   'd': Toggles whether the assistant's responses should be displayed or not.
+  'e' or ' ' : Records the user's voice for 5 seconds and transcribes it. The transcription is then used as the user's input.
   'r': Resets Fenix to a default state, clearing the conversation history and meta instructions.
   AI Response Generation
   The user's input (and the entire conversation history) is fed into an instance of the GPT-3.5-turbo model, which generates the assistant's response. If the response includes a function call, the function is executed if it is approved and the mode is either manual and approved by user, or automatic. The result of the function call can optionally be displayed to the user, depending on the current settings. OpenAI API keys can be obtained here: https://platform.openai.com.
@@ -158,10 +160,10 @@ def ask_user(question, color='purple'):
     return input(colored(f"\n{question}", color))
 
 
-def tell_user(message, color='blue',voice_mode="pyttsx3"):
+def tell_user(message, color='blue', voice_mode=None):
     print(colored(message, color))
-    va.voice_message(base_instructions,message, voice_mode)
-
+    if voice_mode is not None:
+        va.voice_message(base_instructions, message, voice_mode)
 
 def truncate_conversation(conversation, user_input="", function_response=""):
     MAX_TOKENS = 15000
@@ -257,28 +259,35 @@ def run_conversation():
             {"role": "system", "content": "Fenix State Created."})
 
     fenix_state.instructions = base_instructions
-    tell_user("Agent Fenix is Online.", COLORS['launch'],fenix_state.voice_mode)
+    tell_user("Agent Fenix is Online.", COLORS['launch'],None)
 
     tell_user("""There are several special keyboard commands the user can use to guide Fenix's behavior. Here are the special keyboard commands:
 
   'v': Toggles between different voice_modes for Fenix. Fenix can use the default voice, a voice clone of the creator (parth), or no voice at all. Feel free to add your own voice clones to the list of available voices.
   'a': Toggles between manual and automatic mode. In manual mode, Fenix will ask for approval before executing a function. In automatic mode, approved functions are executed automatically.
   'd': Toggles whether the assistant's responses should be displayed or not.
+  'e' or ' ' : Records the user's voice for 5 seconds and transcribes it. The transcription is then used as the user's input.
   'r': Resets Fenix to a default state, clearing the conversation history and meta instructions.
   'exit' or 'quit': Terminates the session and saves the current state of Fenix.""",
+              COLORS['important'],None)
+    tell_user("Voice is now set to " + str(fenix_state.voice_mode),
               COLORS['important'],None)
 
 
     while True:
         user_input = ask_user("> ", COLORS['query'])
         if user_input.lower() in ["exit", "quit"]:
-            tell_user("Exiting Fenix.", COLORS['important'],fenix_state.voice)
+            tell_user("Exiting Fenix.", COLORS['important'],fenix_state.voice_mode)
             conversation.append(
                 {"role": "system", "content": "Exiting Fenix."})
             FileOperations.save_fenix(fenix_state)
             conversation.append({"role": "system", "content": "State saved."})
             break
 
+        elif user_input.lower() == " ":
+            speech_to_text.record(5, "output.wav")
+            transcript = speech_to_text.transcribe("output.wav")
+            user_input = transcript
 
         elif user_input.lower() == "a":
             # Toggle automatic function calling mode
@@ -331,8 +340,7 @@ def run_conversation():
 
         elif user_input.lower() == "v":
             # Toggle voice
-            user_input = "Toggle voice."
-            conversation.append({"role": "user", "content": user_input})
+            conversation.append({"role": "user", "content": "Toggle voice."})
 
             if fenix_state.voice_mode == "pyttsx3":
                 va.switch_voice("eleven_monolingual_v1")
@@ -379,7 +387,9 @@ def run_conversation():
                 "content": "New Fenix State Created."
             })
 
-        else:
+        # Check if the user input is a function call
+        if user_input.lower() not in ("v", "a", "d", "r"):
+            print(colored("User Input: " + user_input, COLORS['query']))
             conversation.append({"role": "user", "content": user_input})
             response = get_function_calling_response(
                 model="gpt-3.5-turbo-16k-0613",
@@ -391,7 +401,7 @@ def run_conversation():
             message = response["choices"][0]["message"]
             if message.get("function_call"):
                 print(colored(("Function Call:" + str(message.get('function_call'))
-                               ), "cyan"))
+                                ), "cyan"))
                 function_name = message["function_call"]["name"]
                 if function_name in approved_functions:
                     try:
@@ -403,7 +413,7 @@ def run_conversation():
 
                     if fenix_state.mode == "manual":
                         user_input = ask_user("Do you want to run the function? (y/n)",
-                                              COLORS['query'])
+                                                COLORS['query'])
                         if user_input.lower() in ["y", "yes"]:
                             try:
                                 function_response = eval(function_name)(**args)
@@ -450,7 +460,7 @@ def run_conversation():
                             "content": "Function Response: " + str(function_response)
                         })
                         print("Conversation length (tokens): " +
-                              str(count_tokens_in_string(stringify_conversation(conversation))))
+                                str(count_tokens_in_string(stringify_conversation(conversation))))
                         conversation = truncate_conversation(
                             conversation, user_input, function_response)
 
@@ -472,7 +482,7 @@ def run_conversation():
 
                 else:
                     tell_user("Sorry, I don't have access to that function.",
-                              COLORS['important'],fenix_state.voice_mode)
+                                COLORS['important'],fenix_state.voice_mode)
                     assistant_message = "Function execution skipped by assistant."
                     conversation.append({
                         "role": "assistant",
