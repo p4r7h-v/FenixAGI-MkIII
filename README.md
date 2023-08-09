@@ -1,4 +1,4 @@
-# FenixAGI MkII: Advanced AI Assistant
+# FenixAGI MkIIII: Advanced AI Assistant
 
 Fenix A.G.I. Mark-III is an advanced AI assistant designed to revolutionize project management. Built by Parth and powered by OpenAI's GPT-16k 3.5-turbo language model, FenixAGI can assist users in a wide array of tasks including file operations, web scraping, data visualization, and more.
 
@@ -21,11 +21,11 @@ Fenix A.G.I. Mark-III is an advanced AI assistant designed to revolutionize proj
 1. Clone the repository:
 
    ```
-   git clone https://github.com/p4r7h-v/FenixAGI-MkII
+   git clone https://github.com/p4r7h-v/FenixAGI-MkIII
    ```
 2. Navigate to the project directory:
    ```
-   cd FenixAGI-MkII
+   cd FenixAGI-MkIII
    ```
 3. Install the required dependencies:
    ```
