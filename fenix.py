@@ -284,7 +284,7 @@ def run_conversation():
             conversation.append({"role": "system", "content": "State saved."})
             break
 
-        elif user_input.lower() == " ":
+        elif user_input.lower() == " " or user_input.lower() == "e":
             speech_to_text.record(5, "output.wav")
             transcript = speech_to_text.transcribe("output.wav")
             user_input = transcript
