@@ -1,4 +1,4 @@
-# FenixAGI MkIIII: Advanced AI Assistant
+# FenixAGI MkIII: Advanced AI Assistant
 
 Fenix A.G.I. Mark-III is an advanced AI assistant designed to revolutionize project management. Built by Parth and powered by OpenAI's GPT-16k 3.5-turbo language model, FenixAGI can assist users in a wide array of tasks including file operations, web scraping, data visualization, and more.
 
