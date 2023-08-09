@@ -1,6 +1,6 @@
-# FenixAGI MkII: Advanced AI Assistant
+# FenixAGI MkIII: Advanced Voice Assistant
 
-Fenix A.G.I. Mark-II is an advanced AI assistant designed to revolutionize project management. Built by Parth and powered by OpenAI's GPT-16k 3.5-turbo language model, FenixAGI can assist users in a wide array of tasks including file operations, web scraping, data visualization, and more.
+Fenix A.G.I. Mark-III is an advanced AI assistant designed to revolutionize project management. Built by Parth and powered by OpenAI's GPT-16k 3.5-turbo language model, FenixAGI can assist users in a wide array of tasks including file operations, web scraping, data visualization, and more.
 
 ## Features
 
@@ -21,11 +21,11 @@ Fenix A.G.I. Mark-II is an advanced AI assistant designed to revolutionize proje
 1. Clone the repository:
 
    ```
-   git clone https://github.com/p4r7h-v/FenixAGI-MkII
+   git clone https://github.com/p4r7h-v/FenixAGI-MkIII
    ```
 2. Navigate to the project directory:
    ```
-   cd FenixAGI-MkII
+   cd FenixAGI-MkIII
    ```
 3. Install the required dependencies:
    ```
@@ -63,6 +63,7 @@ While running, FenixAGI accepts a variety of commands to guide its behavior:
 - 'v': Toggle voice modes.
 - 'a': Toggle between automatic and manual mode for function execution.
 - 'd': Toggle display of the assistant's responses.
+- 'e' or ' ' (spacebar): Records the user's voice for 5 seconds and transcribes it. The transcription is then used as the user's input.
 - 'r': Reset FenixAGI to a default state, clearing the conversation history and meta instructions.
 - 'exit' or 'quit': Terminate the session and save the current state of FenixAGI.
 
