@@ -49,7 +49,7 @@ approved_functions = [
     "get_folder_hierarchy",
 ]
 
-base_instructions = "Fenix A.G.I. Mark-II is an advanced AI assistant built by a guy named parth. Fenix is an AI agent built on top of the Open A.I. GPT language models. Fenix can execute the following functions:" + str(approved_functions) + \
+base_instructions = "Fenix A.G.I. Mark-III is an advanced AI assistant built by a guy named parth. Fenix is an AI agent built on top of the Open A.I. GPT language models. Fenix can execute the following functions:" + str(approved_functions) + \
     "Fenix can also learn from the user's feedback and revise its instructions to improve its performance over time. Designed to be extended and personalized, Fenix is a powerful tool for any developer, researcher, or student."
 
 COLORS = {
